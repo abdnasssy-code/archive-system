@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>أرشيف كلية الشؤون الفنية والإدارية - وزارة الدفاع</title>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- مكتبات Firebase السحابية -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -59,7 +64,7 @@
                 <div class="form-card-container">
                     <div class="panel-header-custom">
                         <h2>تسجيل كتاب أو معاملة رسمية جديدة</h2>
-                        <p>أدخل بيانات الكتاب أو البريد الوارد/الصادر وتوثيقه في الأرشيف المركزي</p>
+                        <p>أدخل بيانات الكتاب أو البريد الوارد/الصادر وتوثيقه في الأرشيف المركزي السحابي</p>
                     </div>
                     <div class="panel-body-custom">
                         <form id="mailForm">
@@ -118,7 +123,7 @@
                                     <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input">
                                 </div>
                                 <div class="full-width">
-                                    <button type="submit" class="btn-submit-custom">حفظ وتوثيق المعاملة في الأرشيف</button>
+                                    <button type="submit" class="btn-submit-custom" id="submitBtn">حفظ وتوثيق المعاملة في الأرشيف السحابي</button>
                                 </div>
                             </div>
                         </form>
@@ -161,7 +166,7 @@
 
                 <div class="archive-panel">
                     <div class="panel-header-archive space-between">
-                        <h2>سجل الأرشيف المركزي</h2>
+                        <h2>سجل الأرشيف المركزي السحابي</h2>
                         <div class="table-tools">
                             <input type="text" id="searchInput" class="search-field" placeholder="ابحث برقم الكتاب، الموضوع..." onkeyup="filterTable()">
                             <button class="btn-refresh-custom" onclick="loadMails()">تحديث القائمة</button>
@@ -181,7 +186,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
-                                <tr><td colspan="7" class="loading-row">جاري تحميل البيانات...</td></tr>
+                                <tr><td colspan="7" class="loading-row">جاري الاتصال بالسحابة وتحميل البيانات...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -225,14 +230,29 @@
         .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 
-    <!-- سكربت التحكم والحفظ الدائم مع دعم ملفات الـ PDF -->
+    <!-- سكربت التحكم والتخزين السحابي (Firebase) -->
     <script>
+        // إعدادات الاتصال بـ Firebase (قم باستبدالها ببيانات مشروعك الفعلي)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
         let currentUser = null;
+        let globalMailsCache = []; // التخزين المؤقت للبيانات لعمليات البحث والعرض
 
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('loginUser').value.trim();
-            const password = document.getElementById('loginPass').value.trim();
             
             if(username) {
                 currentUser = {
@@ -269,76 +289,92 @@
             });
             
             document.getElementById(tabId).classList.add('active-tab');
-            if(event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            }
             
             if(tabId === 'archiveTab') {
                 loadMails();
             }
         }
 
-        document.getElementById('mailForm').addEventListener('submit', function(e) {
+        // معالجة إرسال النموذج وحفظ الملفات في سحابة Firebase Storage و Firestore
+        document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'جاري الرفع والحفظ بالسحابة...';
+
             const fileInput = document.getElementById('pdf_file');
-            
-            if(fileInput.files && fileInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const base64Pdf = event.target.result;
-                    saveMailData(fileInput.files[0].name, base64Pdf);
+            let pdfUrl = '';
+            let pdfName = 'بدون';
+
+            try {
+                if(fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    pdfName = file.name;
+                    const storageRef = storage.ref(`archive_pdfs/${Date.now()}_${pdfName}`);
+                    const snapshot = await storageRef.put(file);
+                    pdfUrl = await snapshot.ref.getDownloadURL();
+                }
+
+                const newMail = {
+                    id: Date.now(),
+                    mail_number: document.getElementById('mail_number').value,
+                    mail_type: document.getElementById('mail_type').value,
+                    reply_to: document.getElementById('reply_to').value,
+                    subject: document.getElementById('subject').value,
+                    sender_dept: document.getElementById('sender_dept').value,
+                    receiver_dept: document.getElementById('receiver_dept').value,
+                    secrecy_level: document.getElementById('secrecy_level').value,
+                    status: document.getElementById('status').value,
+                    summary: document.getElementById('summary').value,
+                    pdf_name: pdfName,
+                    pdf_url: pdfUrl,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
-                reader.readAsDataURL(fileInput.files[0]);
-            } else {
-                saveMailData('بدون', null);
+
+                await db.collection('military_mails_archive').add(newMail);
+
+                alert('تم حفظ وتوثيق المعاملة سحابياً بنجاح!');
+                document.getElementById('mailForm').reset();
+                switchTab('archiveTab');
+            } catch (error) {
+                console.error("خطأ أثناء الحفظ السحابي:", error);
+                alert('حدث خطأ أثناء الحفظ، تأكد من اتصال الإنترنت وصلاحيات السحابة.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف السحابي';
             }
         });
 
-        function saveMailData(fileName, fileData) {
-            const newMail = {
-                id: Date.now(),
-                mail_number: document.getElementById('mail_number').value,
-                mail_type: document.getElementById('mail_type').value,
-                reply_to: document.getElementById('reply_to').value,
-                subject: document.getElementById('subject').value,
-                sender_dept: document.getElementById('sender_dept').value,
-                receiver_dept: document.getElementById('receiver_dept').value,
-                secrecy_level: document.getElementById('secrecy_level').value,
-                status: document.getElementById('status').value,
-                summary: document.getElementById('summary').value,
-                pdf_name: fileName,
-                pdf_data: fileData
-            };
+        // دالة جلب المعاملات من قاعدة البيانات السحابية
+        function loadMails() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري مزامنة البيانات من السحابة...</td></tr>`;
 
-            let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
-            mails.unshift(newMail);
-            
-            localStorage.setItem('military_mails_archive', JSON.stringify(mails));
-
-            alert('تم حفظ وتوثيق المعاملة مع ملف الـ PDF في الأرشيف بنجاح!');
-            document.getElementById('mailForm').reset();
-            switchTab('archiveTab');
+            db.collection('military_mails_archive').orderBy('createdAt', 'desc').get().then((querySnapshot) => {
+                globalMailsCache = [];
+                querySnapshot.forEach((doc) => {
+                    globalMailsCache.push({ docId: doc.id, ...doc.data() });
+                });
+                renderTableData(globalMailsCache);
+            }).catch((error) => {
+                console.error("خطأ في الجلب:", error);
+                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">فشل الاتصال بقاعدة البيانات السحابية.</td></tr>`;
+            });
         }
 
-        function loadMails() {
-            let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
-            
+        // عرض البيانات في الجدول وتحديث الإحصائيات
+        function renderTableData(mails) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
             let total = mails.length, incoming = 0, outgoing = 0, completed = 0;
             const isAdmin = currentUser && currentUser.role === 'admin';
-
             const actionHeader = document.getElementById('thActionHeader');
-            if(isAdmin) {
-                actionHeader.style.display = '';
-            } else {
-                actionHeader.style.display = 'none';
-            }
+            
+            actionHeader.style.display = isAdmin ? '' : 'none';
 
             if(mails.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملات مسجلة حتى الآن.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملات مسجلة سحابياً حتى الآن.</td></tr>`;
                 document.getElementById('totalCount').innerText = 0;
                 document.getElementById('incomingCount').innerText = 0;
                 document.getElementById('outgoingCount').innerText = 0;
@@ -346,7 +382,7 @@
                 return;
             }
 
-            mails.forEach((mail, index) => {
+            mails.forEach((mail) => {
                 if(mail.mail_type === 'وارد') incoming++;
                 if(mail.mail_type === 'صادر') outgoing++;
                 if(mail.status === 'منجز') completed++;
@@ -355,15 +391,13 @@
                 const replyHtml = mail.reply_to ? `<span style="color:#d4af37; font-size:11px;">رد على: ${mail.reply_to}</span>` : `<span style="color:#94a3b8; font-size:11px;">كتاب رئيسي</span>`;
                 
                 let pdfHtml = `<span style="color:#94a3b8; font-size:11px;">بدون مرفق</span>`;
-                if(mail.pdf_data && mail.pdf_name) {
-                    pdfHtml = `<button class="btn-pdf" onclick="openPdf(${index})">📄 عرض ${mail.pdf_name}</button>`;
-                } else if(mail.pdf_name && mail.pdf_name !== 'بدون') {
-                    pdfHtml = `<span style="font-size:11px;">${mail.pdf_name}</span>`;
+                if(mail.pdf_url) {
+                    pdfHtml = `<a href="${mail.pdf_url}" target="_blank" class="btn-pdf">📄 عرض ${mail.pdf_name || 'الملف'}</a>`;
                 }
                 
                 let deleteTd = '';
                 if(isAdmin) {
-                    deleteTd = `<td><button class="btn-delete" onclick="deleteMail(${mail.id})">🗑️ حذف</button></td>`;
+                    deleteTd = `<td><button class="btn-delete" onclick="deleteMail('${mail.docId}', '${mail.pdf_url || ''}')">🗑️ حذف</button></td>`;
                 }
 
                 tr.innerHTML = `
@@ -384,40 +418,37 @@
             document.getElementById('completedCount').innerText = completed;
         }
 
-        function openPdf(index) {
-            let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
-            const mail = mails[index];
-            if(mail && mail.pdf_data) {
-                const win = window.open();
-                win.document.write(`
-                    <html dir="rtl">
-                    <head><title>عرض الملف - ${mail.pdf_name}</title></head>
-                    <body style="margin:0; background:#0e1726;">
-                        <iframe src="${mail.pdf_data}" style="width:100%; height:100vh; border:none;"></iframe>
-                    </body>
-                    </html>
-                `);
-            } else {
-                alert('عذراً، ملف الـ PDF غير متوفر لهذه المعاملة.');
+        // دالة الحذف من السحابة (Firestore + Storage)
+        async function deleteMail(docId, pdfUrl) {
+            if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً من الأرشيف السحابي؟')) return;
+            
+            try {
+                // حذف الملف المرفق من Storage إذا وجد
+                if(pdfUrl) {
+                    const desertRef = storage.refFromURL(pdfUrl);
+                    await desertRef.delete().catch(err => console.log("الملف غير موجود في التخزين أو تم حذفه مسبقاً"));
+                }
+                // حذف السجل النصي من Firestore
+                await db.collection('military_mails_archive').doc(docId).delete();
+                
+                alert('تم حذف المعاملة بنجاح.');
+                loadMails();
+            } catch (error) {
+                console.error("خطأ أثناء الحذف:", error);
+                alert('فشل عملية الحذف.');
             }
         }
 
-        function deleteMail(id) {
-            if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً من الأرشيف؟')) return;
-            
-            let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
-            mails = mails.filter(mail => mail.id !== id);
-            localStorage.setItem('military_mails_archive', JSON.stringify(mails));
-            
-            loadMails();
-        }
-
+        // فلترة الجدول حسب البحث الحي
         function filterTable() {
             const input = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#tableBody tr');
-            rows.forEach(row => {
-                row.style.display = row.innerText.toLowerCase().includes(input) ? '' : 'none';
+            const filtered = globalMailsCache.filter(mail => {
+                return (mail.mail_number && mail.mail_number.toLowerCase().includes(input)) ||
+                       (mail.subject && mail.subject.toLowerCase().includes(input)) ||
+                       (mail.sender_dept && mail.sender_dept.toLowerCase().includes(input)) ||
+                       (mail.receiver_dept && mail.receiver_dept.toLowerCase().includes(input));
             });
+            renderTableData(filtered);
         }
     </script>
 </body>
