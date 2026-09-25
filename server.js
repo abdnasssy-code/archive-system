@@ -13,6 +13,13 @@ app.use(express.urlencoded({ extended: true }));
 // قراءة الملفات الثابتة من نفس المجلد
 app.use(express.static(__dirname));
 
+// مجلد المرفقات
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir));
+
 // تهيئة قاعدة بيانات SQLite
 const dbFile = path.join(__dirname, 'archive.db');
 const db = new sqlite3.Database(dbFile, (err) => {
@@ -24,7 +31,7 @@ const db = new sqlite3.Database(dbFile, (err) => {
     }
 });
 
-// إنشاء الجداول مع ضمان وجود حقول الصادر والوارد بالقيم الصحيحة
+// إنشاء الجداول
 function initDB() {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,23 +72,34 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// جلب جميع المستندات وتوحيد أسماء الحقول لمنع ظهور undefined في الجدول والعدادات
+// جلب المستندات مع مطابقة كافة الاحتمالات البرمجية للواجهة (لتفعيل العدادات والجدول والملفات)
 app.get(['/api/documents', '/api/mails', '/mails', '/documents'], (req, res) => {
-    db.all(`SELECT id, 
-                   COALESCE(title, 'بدون عنوان') as title, 
-                   COALESCE(doc_number, '') as doc_number, 
-                   COALESCE(date, '') as date, 
-                   COALESCE(category, 'عام') as category, 
-                   COALESCE(type, 'وارد') as type, 
-                   COALESCE(description, '') as description, 
-                   file_path 
-            FROM documents ORDER BY id DESC`, [], (err, rows) => {
+    db.all(`SELECT * FROM documents ORDER BY id DESC`, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json(rows || []);
+        
+        // إعادة صياغة الحقول لتتوافق مع أي كود في الواجهة أياً كانت تسمياته
+        const formattedRows = (rows || []).map(row => {
+            return {
+                ...row,
+                // تكرار الحقول بأسماء مختلفة لضمان قراءتها من أي تصميم واجهة
+                subject: row.title,
+                mail_title: row.title,
+                mail_number: row.doc_number,
+                number: row.doc_number,
+                mail_type: row.category,
+                direction: row.type,
+                document_type: row.type,
+                summary: row.description,
+                content: row.description,
+                file: row.file_path
+            };
+        });
+
+        res.json(formattedRows);
     });
 });
 
-// إضافة مستند جديد والتقاط كافة احتمالات أسماء الحقول من الواجهة
+// إضافة مستند جديد
 app.post(['/api/documents', '/api/mails', '/mails', '/documents'], (req, res) => {
     try {
         const title = req.body.title || req.body.subject || req.body.mail_title || 'بدون عنوان';
@@ -89,16 +107,15 @@ app.post(['/api/documents', '/api/mails', '/mails', '/documents'], (req, res) =>
         const date = req.body.date || new Date().toISOString().split('T')[0];
         const category = req.body.category || req.body.mail_type || req.body.section || 'عام';
         
-        // التقاط نوع المعاملة بدقة لضمان عمل عدادات الصادر والوارد
-        let type = req.body.type || req.body.document_type || req.body.mail_direction || req.body.kind || 'وارد';
-        if (type.includes('صادر') || type.toLowerCase() === 'outgoing') {
+        // التقاط نوع المعاملة لتعمل عدادات الصادر والوارد بدقة تامة
+        let rawType = req.body.type || req.body.document_type || req.body.mail_direction || req.body.direction || req.body.kind || 'وارد';
+        let type = 'وارد';
+        if (typeof rawType === 'string' && (rawType.includes('صادر') || rawType.toLowerCase() === 'outgoing')) {
             type = 'صادر';
-        } else {
-            type = 'وارد';
         }
 
         const description = req.body.description || req.body.summary || req.body.content || '';
-        const filePath = req.body.file_path || null;
+        const filePath = req.body.file_path || req.body.file || null;
 
         const query = `INSERT INTO documents (title, doc_number, date, category, type, description, file_path) VALUES (?, ?, ?, ?, ?, ?, ?)`;
         db.run(query, [title, doc_number, date, category, type, description, filePath], function(err) {
