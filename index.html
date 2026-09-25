@@ -30,7 +30,7 @@
         </div>
     </div>
 
-    <!-- ================= النظام الأساسي (يُخفى حتى يتم تسجيل الدخول) ================= -->
+    <!-- ================= النظام الأساسي ================= -->
     <div id="appContainer" style="display: none;">
         <header class="app-header">
             <div class="header-container">
@@ -41,7 +41,7 @@
                     <div class="header-titles">
                         <span class="ministry-tag">وزارة الدفاع ◄ إدارة التدريب</span>
                         <h2>كلية الشؤون الفنية والإدارية</h2>
-                        <p id="userInfoDisplay">مرحباً بك (مسؤول النظام)</p>
+                        <p id="userInfoDisplay">مرحباً بك</p>
                     </div>
                 </div>
                 
@@ -54,7 +54,7 @@
         </header>
 
         <main class="main-container">
-            <!-- تبويب تسجيل كتاب جديد (متاح للجميع) -->
+            <!-- تبويب تسجيل كتاب جديد -->
             <div id="formTab" class="tab-content active-tab">
                 <div class="form-card-container">
                     <div class="panel-header-custom">
@@ -62,7 +62,7 @@
                         <p>أدخل بيانات الكتاب أو البريد الوارد/الصادر وتوثيقه في الأرشيف المركزي</p>
                     </div>
                     <div class="panel-body-custom">
-                        <form id="mailForm" enctype="multipart/form-data">
+                        <form id="mailForm">
                             <div class="form-grid">
                                 <div class="input-group">
                                     <label for="mail_number">رقم الكتاب / المعاملة *</label>
@@ -114,8 +114,8 @@
                                     <textarea id="summary" name="summary" rows="3" placeholder="اكتب ملخصاً وافياً عن محتوى الكتاب..."></textarea>
                                 </div>
                                 <div class="input-group full-width">
-                                    <label for="pdf_file">إرفاق نسخة PDF رسمية</label>
-                                    <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input">
+                                    <label for="pdf_name">اسم أو ملاحظة الملف المرفق (اختياري)</label>
+                                    <input type="text" id="pdf_name" name="pdf_name" placeholder="مثال: كتاب_الاعتماد.pdf">
                                 </div>
                                 <div class="full-width">
                                     <button type="submit" class="btn-submit-custom">حفظ وتوثيق المعاملة في الأرشيف</button>
@@ -190,7 +190,7 @@
         </main>
     </div>
 
-    <!-- التنسيقات الإضافية لشاشة تسجيل الدخول -->
+    <!-- التنسيقات الإضافية -->
     <style>
         .login-overlay {
             position: fixed;
@@ -223,39 +223,34 @@
         .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 
-    <!-- سكربت التحكم بالصلاحيات وجلسة المستخدم -->
+    <!-- سكربت الحفظ الدائم (LocalStorage) -->
     <script>
         let currentUser = null;
 
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        // تسجيل الدخول (محلياً للاختبار السريع، يمكنك جعله يقبل أي بيانات أو تحديدها بدقة)
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const username = document.getElementById('loginUser').value;
-            const password = document.getElementById('loginPass').value;
-            const errEl = document.getElementById('loginError');
+            const username = document.getElementById('loginUser'].value.trim();
+            const password = document.getElementById('loginPass'].value.trim();
+            
+            // تحديد صلاحية افتراضية بناء على اسم المستخدم (مثال: admin مدير، غير ذلك موظف)
+            if(username) {
+                currentUser = {
+                    username: username,
+                    role: (username === 'admin' || username === 'مدير') ? 'admin' : 'staff'
+                };
 
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-                if(data.success) {
-                    currentUser = data.user;
-                    document.getElementById('loginOverlay').style.display = 'none';
-                    document.getElementById('appContainer').style.display = 'block';
-                    
-                    if(currentUser.role === 'admin') {
-                        document.getElementById('userInfoDisplay').innerText = 'الصلاحية: مسؤول النظام (مدير)';
-                    } else {
-                        document.getElementById('userInfoDisplay').innerText = 'الصلاحية: مُدخل بريد';
-                    }
-                    loadMails();
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
+                
+                if(currentUser.role === 'admin') {
+                    document.getElementById('userInfoDisplay').innerText = 'مرحباً: ' + username + ' (مسؤول النظام)';
                 } else {
-                    errEl.innerText = data.error;
+                    document.getElementById('userInfoDisplay').innerText = 'مرحباً: ' + username + ' (مُدخل بريد)';
                 }
-            } catch(err) {
-                errEl.innerText = 'حدث خطأ في الاتصال بالخادم.';
+                loadMails();
+            } else {
+                document.getElementById('loginError').innerText = 'يرجى إدخال اسم المستخدم.';
             }
         });
 
@@ -281,97 +276,103 @@
             }
         }
 
-        document.getElementById('mailForm').addEventListener('submit', async function(e) {
+        // حفظ المعاملة الجديدة في التخزين الدائم للمتصفح LocalStorage
+        document.getElementById('mailForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const formData = new FormData(this);
+            
+            const newMail = {
+                id: Date.now(), // رقم تعريفي فريد يعتمد على الوقت
+                mail_number: document.getElementById('mail_number').value,
+                mail_type: document.getElementById('mail_type').value,
+                reply_to: document.getElementById('reply_to').value,
+                subject: document.getElementById('subject').value,
+                sender_dept: document.getElementById('sender_dept').value,
+                receiver_dept: document.getElementById('receiver_dept').value,
+                secrecy_level: document.getElementById('secrecy_level').value,
+                status: document.getElementById('status').value,
+                summary: document.getElementById('summary').value,
+                pdf_name: document.getElementById('pdf_name').value
+            };
 
-            try {
-                const response = await fetch('/api/mails', { method: 'POST', body: formData });
-                const result = await response.json();
-                if(result.success) {
-                    alert(result.message);
-                    this.reset();
-                    switchTab('archiveTab');
-                } else {
-                    alert('خطأ: ' + result.error);
-                }
-            } catch (err) {
-                alert('حدث خطأ أثناء الاتصال بالخادم.');
-            }
+            // جلب البيانات القديمة أو إنشاء مصفوفة جديدة
+            let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
+            mails.unshift(newMail); // إضافة المعاملة الجديدة في البداية
+            
+            // حفظها بشكل دائم
+            localStorage.setItem('military_mails_archive', JSON.stringify(mails));
+
+            alert('تم حفظ وتوثيق المعاملة في الأرشيف بنجاح!');
+            this.reset();
+            switchTab('archiveTab');
         });
 
-        async function loadMails() {
-            try {
-                const response = await fetch('/api/mails');
-                const mails = await response.json();
-                
-                const tbody = document.getElementById('tableBody');
-                tbody.innerHTML = '';
+        // استرجاع وعرض المعاملات المحفوظة
+        function loadMails() {
+            let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
+            
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
 
-                let total = mails.length, incoming = 0, outgoing = 0, completed = 0;
-                const isAdmin = currentUser && currentUser.role === 'admin';
+            let total = mails.length, incoming = 0, outgoing = 0, completed = 0;
+            const isAdmin = currentUser && currentUser.role === 'admin';
 
-                const actionHeader = document.getElementById('thActionHeader');
-                if(isAdmin) {
-                    actionHeader.style.display = '';
-                } else {
-                    actionHeader.style.display = 'none';
-                }
-
-                if(mails.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملات مسجلة حتى الآن.</td></tr>`;
-                    return;
-                }
-
-                mails.forEach(mail => {
-                    if(mail.mail_type === 'وارد') incoming++;
-                    if(mail.mail_type === 'صادر') outgoing++;
-                    if(mail.status === 'منجز') completed++;
-
-                    const tr = document.createElement('tr');
-                    const replyHtml = mail.reply_to ? `<span class="reply-badge">رد على: ${mail.reply_to}</span>` : `<span style="color:#94a3b8; font-size:11px;">كتاب رئيسي</span>`;
-                    const pdfHtml = mail.pdf_path ? `<a href="${mail.pdf_path}" target="_blank" class="btn-pdf">📄 عرض PDF</a>` : `<span style="color:#94a3b8; font-size:11px;">بدون</span>`;
-                    
-                    let deleteTd = '';
-                    if(isAdmin) {
-                        deleteTd = `<td><button class="btn-delete" onclick="deleteMail(${mail.id})">🗑️ حذف</button></td>`;
-                    }
-
-                    tr.innerHTML = `
-                        <td><strong>${mail.mail_number}</strong><br><span class="badge badge-normal">${mail.mail_type}</span></td>
-                        <td>${replyHtml}</td>
-                        <td><strong>${mail.subject}</strong></td>
-                        <td>${mail.sender_dept} ← ${mail.receiver_dept}</td>
-                        <td><span class="badge badge-secret">${mail.secrecy_level || 'عادي'}</span><br><span class="badge badge-status">${mail.status}</span></td>
-                        <td>${pdfHtml}</td>
-                        ${deleteTd}
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                document.getElementById('totalCount').innerText = total;
-                document.getElementById('incomingCount').innerText = incoming;
-                document.getElementById('outgoingCount').innerText = outgoing;
-                document.getElementById('completedCount').innerText = completed;
-
-            } catch (err) {
-                console.error(err);
+            const actionHeader = document.getElementById('thActionHeader');
+            if(isAdmin) {
+                actionHeader.style.display = '';
+            } else {
+                actionHeader.style.display = 'none';
             }
+
+            if(mails.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملات مسجلة حتى الآن.</td></tr>`;
+                document.getElementById('totalCount').innerText = 0;
+                document.getElementById('incomingCount').innerText = 0;
+                document.getElementById('outgoingCount').innerText = 0;
+                document.getElementById('completedCount').innerText = 0;
+                return;
+            }
+
+            mails.forEach(mail => {
+                if(mail.mail_type === 'وارد') incoming++;
+                if(mail.mail_type === 'صادر') outgoing++;
+                if(mail.status === 'منجز') completed++;
+
+                const tr = document.createElement('tr');
+                const replyHtml = mail.reply_to ? `<span style="color:#d4af37; font-size:11px;">رد على: ${mail.reply_to}</span>` : `<span style="color:#94a3b8; font-size:11px;">كتاب رئيسي</span>`;
+                const pdfHtml = mail.pdf_name ? `<span style="font-size:11px; color:#38bdf8;">📎 ${mail.pdf_name}</span>` : `<span style="color:#94a3b8; font-size:11px;">بدون</span>`;
+                
+                let deleteTd = '';
+                if(isAdmin) {
+                    deleteTd = `<td><button class="btn-delete" onclick="deleteMail(${mail.id})">🗑️ حذف</button></td>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>${mail.mail_number}</strong><br><span style="background:#1e293b; color:#fff; padding:2px 6px; border-radius:4px; font-size:10px;">${mail.mail_type}</span></td>
+                    <td>${replyHtml}</td>
+                    <td><strong>${mail.subject}</strong></td>
+                    <td>${mail.sender_dept} ← ${mail.receiver_dept}</td>
+                    <td><span style="color:#facc15; font-size:11px;">${mail.secrecy_level || 'عادي'}</span><br><span style="color:#4ade80; font-size:11px;">${mail.status}</span></td>
+                    <td>${pdfHtml}</td>
+                    ${deleteTd}
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('totalCount').innerText = total;
+            document.getElementById('incomingCount').innerText = incoming;
+            document.getElementById('outgoingCount').innerText = outgoing;
+            document.getElementById('completedCount').innerText = completed;
         }
 
-        async function deleteMail(id) {
+        // حذف معاملة من التخزين الدائم
+        function deleteMail(id) {
             if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً من الأرشيف؟')) return;
-            try {
-                const res = await fetch(`/api/mails/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if(data.success) {
-                    loadMails();
-                } else {
-                    alert('فشل الحذف');
-                }
-            } catch(err) {
-                alert('خطأ في الاتصال');
-            }
+            
+            let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
+            mails = mails.filter(mail => mail.id !== id);
+            localStorage.setItem('military_mails_archive', JSON.stringify(mails));
+            
+            loadMails();
         }
 
         function filterTable() {
