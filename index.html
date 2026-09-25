@@ -27,10 +27,6 @@
                 <button type="submit" class="btn-submit-custom">تسجيل الدخول للنظام</button>
                 <p id="loginError" class="login-error"></p>
             </form>
-            <div class="login-hint">
-                <small>حساب المسؤول الافتراضي: <b>admin</b> / <b>123456</b></small><br>
-                <small>حساب مُدخل البريد: <b>staff</b> / <b>123456</b></small>
-            </div>
         </div>
     </div>
 
@@ -217,7 +213,6 @@
         .login-header h2 { margin: 0 0 5px 0; color: #0a192f; font-size: 20px; }
         .login-header p { margin: 0 0 20px 0; color: #64748b; font-size: 12px; }
         .login-error { color: #dc2626; font-size: 12px; margin-top: 10px; text-align: center; }
-        .login-hint { margin-top: 15px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center; }
         .btn-logout { background: #dc2626 !important; color: white !important; }
         .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .btn-delete:hover { background: #dc2626; color: white; }
@@ -316,7 +311,6 @@
                 let total = mails.length, incoming = 0, outgoing = 0, completed = 0;
                 const isAdmin = currentUser && currentUser.role === 'admin';
 
-                // إظهار أو إخفاء عمود الحذف بناءً على الصلاحية
                 const actionHeader = document.getElementById('thActionHeader');
                 if(isAdmin) {
                     actionHeader.style.display = '';
