@@ -7,132 +7,112 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// إعداد مجلد المرفقات (PDF)
-const uploadDir = path.join(__dirname, 'public', 'uploads');
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// قراءة الملفات الثابتة من نفس مجلد المشروع مباشرة
+app.use(express.static(__dirname));
+
+// إعداد مجلد لرفع الملفات إذا لم يكن موجوداً
+const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
+app.use('/uploads', express.static(uploadDir));
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
-const upload = multer({ storage: storage });
+const upload = multer({ dest: 'uploads/' });
 
-// إعداد قاعدة بيانات SQLite
+// تهيئة قاعدة بيانات SQLite
 const dbFile = path.join(__dirname, 'archive.db');
 const db = new sqlite3.Database(dbFile, (err) => {
     if (err) {
         console.error('خطأ في الاتصال بقاعدة البيانات:', err.message);
     } else {
         console.log('تم الاتصال بقاعدة بيانات SQLite بنجاح.');
-        
-        // جدول المعاملات
-        db.run(`CREATE TABLE IF NOT EXISTS mails (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            mail_number TEXT NOT NULL,
-            mail_type TEXT NOT NULL,
-            reply_to TEXT,
-            subject TEXT NOT NULL,
-            sender_dept TEXT NOT NULL,
-            receiver_dept TEXT NOT NULL,
-            secrecy_level TEXT,
-            status TEXT,
-            summary TEXT,
-            pdf_path TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-        // جدول المستخدمين والصلاحيات
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL -- 'admin' للمسؤول أو 'user' لمُدخل البيانات
-        )`, () => {
-            // إنشاء حساب مسؤول افتراضي وحساب مُدخل بريد افتراضي (للتجربة)
-            db.get(`SELECT * FROM users WHERE username = ?`, ['admin'], (err, row) => {
-                if (!row) {
-                    db.run(`INSERT INTO users (username, password, role) VALUES (?, ?, ?)`, ['admin', '123456', 'admin']);
-                    db.run(`INSERT INTO users (username, password, role) VALUES (?, ?, ?)`, ['staff', '123456', 'user']);
-                }
-            });
-        });
+        initDB();
     }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// إنشاء الجداول الافتراضية وحساب المسؤول
+function initDB() {
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT,
+        role TEXT
+    )`, () => {
+        // إنشاء حساب مسؤول افتراضي إذا لم يكن موجوداً
+        db.get(`SELECT * FROM users WHERE username = 'admin'`, (err, row) => {
+            if (!row) {
+                db.run(`INSERT INTO users (username, password, role) VALUES ('admin', '123456', 'admin')`);
+            }
+        });
+    });
 
-// 1. نقطة نهاية تسجيل الدخول
+    db.run(`CREATE TABLE IF NOT EXISTS documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        doc_number TEXT,
+        date TEXT,
+        category TEXT,
+        description TEXT,
+        file_path TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+}
+
+// مسار تسجيل الدخول
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-    db.get(`SELECT username, role FROM users WHERE username = ? AND password = ?`, [username, password], (err, row) => {
+    db.get(`SELECT * FROM users WHERE username = ? AND password = ?`, [username, password], (err, user) => {
         if (err) {
-            return res.status(500).json({ success: false, error: 'خطأ في الخادم' });
+            return res.status(500).json({ success: false, message: 'خطأ في الخادم' });
         }
-        if (row) {
-            res.json({ success: true, user: row });
+        if (user) {
+            res.json({ success: true, role: user.role, username: user.username });
         } else {
-            res.json({ success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+            res.status(401).json({ success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
         }
     });
 });
 
-// 2. جلب كافة سجلات الأرشيف
-app.get('/api/mails', (req, res) => {
-    const query = `SELECT * FROM mails ORDER BY id DESC`;
-    db.all(query, [], (err, rows) => {
+// جلب جميع المستندات
+app.get('/api/documents', (req, res) => {
+    db.all(`SELECT * FROM documents ORDER BY id DESC`, [], (err, rows) => {
         if (err) {
-            return res.status(500).json({ error: 'خطأ في جلب البيانات' });
+            return res.status(500).json({ error: err.message });
         }
         res.json(rows);
     });
 });
 
-// 3. إضافة كتاب أو رد جديد
-app.post('/api/mails', upload.single('pdf_file'), (req, res) => {
-    const { 
-        mail_number, mail_type, reply_to, subject, 
-        sender_dept, receiver_dept, secrecy_level, status, summary 
-    } = req.body;
+// إضافة مستند جديد مع ملف
+app.post('/api/documents', upload.single('file'), (req, res) => {
+    const { title, doc_number, date, category, description } = req.body;
+    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const pdf_path = req.file ? `/uploads/${req.file.filename}` : null;
-
-    const query = `INSERT INTO mails (
-        mail_number, mail_type, reply_to, subject, sender_dept, receiver_dept, secrecy_level, status, summary, pdf_path
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    const params = [
-        mail_number, mail_type, reply_to || null, subject, 
-        sender_dept, receiver_dept, secrecy_level, status, summary, pdf_path
-    ];
-
-    db.run(query, params, function (err) {
+    const query = `INSERT INTO documents (title, doc_number, date, category, description, file_path) VALUES (?, ?, ?, ?, ?, ?)`;
+    db.run(query, [title, doc_number, date, category, description, filePath], function(err) {
         if (err) {
-            return res.status(500).json({ error: 'خطأ أثناء حفظ المعاملة' });
+            return res.status(500).json({ success: false, error: err.message });
         }
-        res.json({ success: true, message: 'تم حفظ وتوثيق الكتاب بنجاح' });
+        res.json({ success: true, id: this.lastID });
     });
 });
 
-// 4. حذف معاملة (خاص بالمسؤول حصراً)
-app.delete('/api/mails/:id', (req, res) => {
-    const mailId = req.params.id;
-    db.run(`DELETE FROM mails WHERE id = ?`, [mailId], function(err) {
+// حذف مستند
+app.delete('/api/documents/:id', (req, res) => {
+    const id = req.params.id;
+    db.run(`DELETE FROM documents WHERE id = ?`, id, function(err) {
         if (err) {
-            return res.status(500).json({ success: false, error: 'خطأ أثناء الحذف' });
+            return res.status(500).json({ success: false, error: err.message });
         }
-        res.json({ success: true, message: 'تم حذف المعاملة بنجاح' });
+        res.json({ success: true });
     });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`الخادم يعمل بنجاح على الرابط: http://localhost:${PORT}`);
+// تشغيل الخادم
+app.listen(PORT, () => {
+    console.log(`الخادم يعمل بنجاح على المنفذ ${PORT}`);
 });
