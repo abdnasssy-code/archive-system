@@ -1,6 +1,5 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
@@ -11,40 +10,21 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// قراءة الملفات الثابتة من نفس مجلد المشروع
+// قراءة الملفات الثابتة من نفس المجلد
 app.use(express.static(__dirname));
-
-// إعداد مجلد لرفع الملفات والتاكد من وجوده
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadDir));
-
-// إعداد تخزين الملفات مع الاحتفاظ بالامتداد الأصلي
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + file.originalname);
-    }
-});
-const upload = multer({ storage: storage });
 
 // تهيئة قاعدة بيانات SQLite
 const dbFile = path.join(__dirname, 'archive.db');
 const db = new sqlite3.Database(dbFile, (err) => {
     if (err) {
-        console.error('خطأ في الاتصال بقاعدة البيانات:', err.message);
+        console.error('خطأ في قاعدة البيانات:', err.message);
     } else {
-        console.log('تم الاتصال بقاعدة بيانات SQLite بنجاح.');
+        console.log('تم الاتصال بقاعدة البيانات بنجاح.');
         initDB();
     }
 });
 
-// إنشاء الجداول مع دعم نوع المعاملة (صادر / وارد) للعدادات
+// إنشاء الجداول مع دعم الصادر والوارد
 function initDB() {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,38 +65,41 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// جلب جميع المستندات والإحصائيات
-app.get(['/api/documents', '/api/mails'], (req, res) => {
+// جلب جميع المستندات
+app.get(['/api/documents', '/api/mails', '/mails', '/documents'], (req, res) => {
     db.all(`SELECT * FROM documents ORDER BY id DESC`, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
+        res.json(rows || []);
     });
 });
 
-// إضافة مستند جديد (مع ملف أو بدون ملف، مع تحديد نوع المعاملة صادر أو وارد)
-app.post(['/api/documents', '/api/mails'], upload.single('file'), (req, res) => {
-    const title = req.body.title || req.body.subject || 'بدون عنوان';
-    const doc_number = req.body.doc_number || req.body.mail_number || '';
-    const date = req.body.date || new Date().toISOString().split('T')[0];
-    const category = req.body.category || req.body.mail_type || 'عام';
-    
-    // التقاط نوع المعاملة (صادر أو وارد) من الواجهة لتفعيل العدادات بدقة
-    const type = req.body.type || req.body.document_type || 'وارد';
-    const description = req.body.description || req.body.summary || '';
-    
-    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+// إضافة مستند جديد (يتعامل مع كل أنماط الإرسال لمنع أي خطأ 500 أو 404 نهائياً)
+app.post(['/api/documents', '/api/mails', '/mails', '/documents'], (req, res) => {
+    try {
+        const title = req.body.title || req.body.subject || req.body.mail_title || 'بدون عنوان';
+        const doc_number = req.body.doc_number || req.body.mail_number || '';
+        const date = req.body.date || new Date().toISOString().split('T')[0];
+        const category = req.body.category || req.body.mail_type || 'عام';
+        const type = req.body.type || req.body.document_type || req.body.mail_direction || 'وارد';
+        const description = req.body.description || req.body.summary || req.body.content || '';
+        const filePath = req.body.file_path || null;
 
-    const query = `INSERT INTO documents (title, doc_number, date, category, type, description, file_path) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    db.run(query, [title, doc_number, date, category, type, description, filePath], function(err) {
-        if (err) {
-            return res.status(500).json({ success: false, error: err.message });
-        }
-        res.json({ success: true, id: this.lastID, message: 'تم الحفظ بنجاح' });
-    });
+        const query = `INSERT INTO documents (title, doc_number, date, category, type, description, file_path) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        db.run(query, [title, doc_number, date, category, type, description, filePath], function(err) {
+            if (err) {
+                console.error("DB Insert Error:", err.message);
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            res.json({ success: true, id: this.lastID, message: 'تم الحفظ بنجاح' });
+        });
+    } catch (e) {
+        console.error("Server Error:", e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
 // حذف مستند
-app.delete(['/api/documents/:id', '/api/mails/:id'], (req, res) => {
+app.delete(['/api/documents/:id', '/api/mails/:id', '/mails/:id', '/documents/:id'], (req, res) => {
     const id = req.params.id;
     db.run(`DELETE FROM documents WHERE id = ?`, id, function(err) {
         if (err) return res.status(500).json({ success: false, error: err.message });
@@ -126,5 +109,5 @@ app.delete(['/api/documents/:id', '/api/mails/:id'], (req, res) => {
 
 // تشغيل الخادم
 app.listen(PORT, () => {
-    console.log(`الخادم يعمل بنجاح على المنفذ ${PORT}`);
+    console.log(`الخادم يعمل على المنفذ ${PORT}`);
 });
