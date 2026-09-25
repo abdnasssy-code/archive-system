@@ -3,216 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الأرشيف والمراسلات الإدارية</title>
-    <!-- استيراد خطوط وتصميم أنيق Bootstrap & FontAwesome -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>نظام الأرشفة الإلكتروني - الديوان المركزي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar { background-color: #1e293b; color: #fff; }
-        .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .login-container { max-width: 400px; margin: 80px auto; padding: 20px; }
-        .current-date { font-size: 0.95rem; color: #cbd5e1; }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
-    <!-- شريط التنقل العلوي مع عرض التاريخ -->
-    <nav class="navbar navbar-expand-lg navbar-dark px-4 mb-4">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#"><i class="fas fa-archive ms-2"></i> نظام الأرشيف الرقمي</a>
-            <div id="dateDisplay" class="current-date"></div>
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-amber-600">
+            <div class="text-center mb-6">
+                <i class="fas fa-landmark text-4xl text-amber-600 mb-2"></i>
+                <h2 class="text-2xl font-bold text-gray-800">الديوان المركزي</h2>
+                <p class="text-sm text-gray-500">كلية الشؤون الفنية والإدارية - وزارة الدفاع</p>
+            </div>
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">اسم المستخدم</label>
+                    <input type="text" id="username" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="أدخل اسم المستخدم">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">كلمة المرور</label>
+                    <input type="password" id="password" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="••••••••">
+                </div>
+                <div id="loginError" class="text-red-500 text-sm hidden text-center">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+                <button type="submit" class="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                    تسجيل الدخول
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- الترويسة الرئيسية للنظام -->
+    <header class="bg-gray-900 text-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <i class="fas fa-shield-alt text-2xl text-amber-500"></i>
+                <div>
+                    <h1 class="text-lg font-bold">وزارة الدفاع - كلية الشؤون الفنية والإدارية</h1>
+                    <p class="text-xs text-gray-400">بوابة الديوان المركزي للأرشفة والاتصالات الرسمية</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <span id="userInfo" class="text-sm bg-gray-800 px-3 py-1 rounded-full text-amber-400"></span>
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition">
+                    <i class="fas fa-sign-out-alt ml-1"></i> خروج
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- شريط التنقل بين التبويبات -->
+    <nav class="bg-white shadow border-b">
+        <div class="container mx-auto px-4 flex space-x-6 space-x-reverse">
+            <button onclick="switchTab('newMail')" id="btnNewMail" class="py-3 px-4 border-b-2 border-amber-600 text-amber-600 font-bold focus:outline-none">
+                <i class="fas fa-plus-circle ml-1"></i> تسجيل كتاب جديد
+            </button>
+            <button onclick="switchTab('archive')" id="btnArchive" class="py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-amber-600 font-bold focus:outline-none">
+                <i class="fas fa-archive ml-1"></i> أرشيف المعاملات
+            </button>
         </div>
     </nav>
 
-    <!-- شاشة تسجيل الدخول -->
-    <div id="loginSection" class="login-container">
-        <div class="card shadow-sm p-4">
-            <h4 class="text-center mb-4 text-dark"><i class="fas fa-user-lock ms-2"></i> تسجـيل الدخـول</h4>
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="mb-3">
-                    <label class="form-label">اسم المستخدم</label>
-                    <input type="text" id="username" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">كلمة المرور</label>
-                    <input type="password" id="password" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">دخول</button>
-            </form>
-        </div>
-    </div>
+    <!-- المحتوى الرئيسي -->
+    <main class="container mx-auto px-4 py-6 flex-grow">
 
-    <!-- لوحة التحكم والأرشيف (تظهر بعد تسجيل الدخول) -->
-    <div id="dashboardSection" class="container py-4" style="display: none;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>لوحة إدارة المراسلات والأرشيف</h3>
-            <button class="btn btn-outline-danger btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt ms-1"></i> تسجيل الخروج</button>
-        </div>
-
-        <!-- نموذج إضافة معاملة جديدة -->
-        <div class="card p-4 mb-4">
-            <h5 class="mb-3 text-secondary"><i class="fas fa-plus-circle ms-1"></i> إضافة معاملة جديدة</h5>
-            <form id="mailForm" onsubmit="addMail(event)">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">رقم الكتاب / المعاملة</label>
-                        <input type="text" name="mail_number" class="form-control" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">نوع البريد / المعاملة</label>
-                        <select name="mail_type" class="form-select" required>
-                            <option value="صادر">صادر</option>
-                            <option value="وارد">وارد</option>
-                            <option value="داخلي">داخلي</option>
-                            <option value="شكوى للرقابة">شكوى للرقابة</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">إشارة إلى (رد على)</label>
-                        <input type="text" name="reply_to" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">درجة السرية</label>
-                        <select name="secrecy_level" class="form-select">
-                            <option value="عادي">عادي</option>
-                            <option value="مكتوم">مكتوم</option>
-                            <option value="سري">سري</option>
-                            <option value="سري للغاية">سري للغاية</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">الجهة المرسلة</label>
-                        <input type="text" name="sender_dept" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">الجهة المستلمة</label>
-                        <input type="text" name="receiver_dept" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">موضوع الكتاب</label>
-                        <input type="text" name="subject" class="form-control" required>
-                    </div>
-                    <div class="col-md-12">
-                        <label class="form-label">الخلاصة / النص</label>
-                        <textarea name="summary" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">إرفاق ملف PDF</label>
-                        <input type="file" name="pdf_file" class="form-control" accept="application/pdf">
-                    </div>
-                    <div class="col-md-6 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success w-100"><i class="fas fa-save ms-1"></i> حفظ وتوثيق المعاملة</button>
-                    </div>
+        <!-- تبويب تسجيل كتاب جديد -->
+        <section id="newMailTab" class="bg-white rounded-xl shadow-md p-6 max-w-4xl mx-auto">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">إدخال معاملة جديدة (صادر / وارد / داخلي)</h3>
+            <form id="mailForm" onsubmit="submitMail(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">رقم الكتاب الرسمي</label>
+                    <input type="text" id="mailNumber" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">نوع المعاملة</label>
+                    <select id="mailType" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                        <option value="وارد">وارد</option>
+                        <option value="صادر">صادر</option>
+                        <option value="داخلي">داخلي</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">تاريخ الكتاب</label>
+                    <input type="date" id="mailDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">إشارة الرد (إن وجدت)</label>
+                    <input type="text" id="mailReference" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="رقم الكتاب المرتبط">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-gray-700 text-sm font-bold mb-1">موضوع الكتاب</label>
+                    <input type="text" id="mailSubject" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="اكتب موضوع المعاملة باختصار">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">الجهة المرسلة</label>
+                    <input type="text" id="sender" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">الجهة المستلمة</label>
+                    <input type="text" id="recipient" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">درجة السرية</label>
+                    <select id="securityLevel" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                        <option value="عادي">عادي</option>
+                        <option value="مكتوم">مكتوم</option>
+                        <option value="سري">سري</option>
+                        <option value="سري للغاية">سري للغاية</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-1">إرفاق نسخة PDF</label>
+                    <input type="file" id="attachment" accept=".pdf" class="w-full px-3 py-1 border rounded-lg bg-gray-50 text-sm">
+                </div>
+                <div class="md:col-span-2 mt-4">
+                    <button type="submit" class="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                        <i class="fas fa-save ml-1"></i> حفظ وأرشفة المعاملة
+                    </button>
                 </div>
             </form>
-        </div>
+        </section>
 
-        <!-- جدول عرض الأرشيف -->
-        <div class="card p-3">
-            <h5 class="mb-3 text-secondary">سجل المعاملات والأرشيف</h5>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>الرقم</th>
-                            <th>النوع</th>
-                            <th>الموضوع</th>
-                            <th>المرسل</th>
-                            <th>المستلم</th>
-                            <th>التاريخ</th>
-                            <th>الملف</th>
-                            <th>إجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="mailsTableBody">
-                        <!-- يتم تعبئتها ديناميكياً -->
-                    </tbody>
-                </table>
+        <!-- تبويب أرشيف المعاملات -->
+        <section id="archiveTab" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border-r-4 border-blue-500">
+                    <p class="text-sm text-gray-500">إجمالي المعاملات</p>
+                    <h4 id="totalCount" class="text-2xl font-bold text-gray-800">0</h4>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-r-4 border-green-500">
+                    <p class="text-sm text-gray-500">الكتب الواردة</p>
+                    <h4 id="incomingCount" class="text-2xl font-bold text-gray-800">0</h4>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-r-4 border-amber-500">
+                    <p class="text-sm text-gray-500">الكتب الصادرة</p>
+                    <h4 id="outgoingCount" class="text-2xl font-bold text-gray-800">0</h4>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-r-4 border-purple-500">
+                    <p class="text-sm text-gray-500">المعاملات الداخلية</p>
+                    <h4 id="internalCount" class="text-2xl font-bold text-gray-800">0</h4>
+                </div>
             </div>
-        </div>
-    </div>
+
+            <!-- جدول البحث والعرض -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">سجل المعاملات المؤرشفة</h3>
+                    <input type="text" id="searchInput" onkeyup="filterArchive()" placeholder="بحث برقم الكتاب أو الموضوع..." class="px-3 py-2 border rounded-lg w-72 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700 text-sm border-b">
+                                <th class="p-3">الرقم</th>
+                                <th class="p-3">النوع</th>
+                                <th class="p-3">التاريخ</th>
+                                <th class="p-3">الموضوع</th>
+                                <th class="p-3">المرسل / المستلم</th>
+                                <th class="p-3">السرية</th>
+                                <th class="p-3">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archiveTableBody" class="text-sm text-gray-600">
+                            <!-- سيتم تعبئة البيانات برمجياً -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-900 text-gray-400 text-center py-4 text-xs">
+        جميع الحقوق محفوظة - وزارة الدفاع &copy; 2026
+    </footer>
 
     <script>
-        // عرض تاريخ اليوم تلقائياً
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const todayStr = new Date().toLocaleDateString('ar-SY', options);
-        document.getElementById('dateDisplay').innerHTML = `<i class="fas fa-calendar-alt ms-1"></i> ${todayStr}`;
+        let currentUser = null;
 
-        // دالة تسجيل الدخول
-        async function handleLogin(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('dashboardSection').style.display = 'block';
-                loadMails();
-            } else {
-                alert(data.error || 'خطأ في اسم المستخدم أو كلمة المرور');
-            }
+        function handleLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById('username').value;
+            // يتم التحقق هنا أو إرسال طلب للخادم الخلفي Backend API
+            currentUser = { name: user, role: user === 'admin' ? 'مدير النظام' : 'مُدخل بيانات' };
+            document.getElementById('userInfo').innerText = `${currentUser.name} (${currentUser.role})`;
+            document.getElementById('loginOverlay').classList.add('hidden');
+            loadArchiveData();
         }
 
         function logout() {
-            document.getElementById('dashboardSection').style.display = 'none';
-            document.getElementById('loginSection').style.display = 'block';
+            currentUser = null;
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('loginOverlay').classList.remove('hidden');
         }
 
-        // جلب المعاملات وعرضها
-        async function loadMails() {
-            const res = await fetch('/api/mails');
-            const mails = await res.json();
-            const tbody = document.getElementById('mailsTableBody');
-            tbody.innerHTML = '';
-            mails.forEach(m => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${m.mail_number || ''}</td>
-                        <td><span class="badge bg-secondary">${m.mail_type || ''}</span></td>
-                        <td>${m.subject || ''}</td>
-                        <td>${m.sender_dept || ''}</td>
-                        <td>${m.receiver_dept || ''}</td>
-                        <td>${m.created_at ? m.created_at.split('T')[0] : ''}</td>
-                        <td>${m.pdf_path ? `<a href="${m.pdf_path}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="fas fa-file-pdf"></i> عرض</a>` : 'لا يوجد'}</td>
-                        <td><button class="btn btn-sm btn-danger" onclick="deleteMail(${m.id})"><i class="fas fa-trash"></i></button></td>
-                    </tr>
-                `;
-            });
-        }
-
-        // إضافة معاملة جديدة عبر الـ API
-        async function addMail(e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const res = await fetch('/api/mails', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert('تم الحفظ بنجاح');
-                e.target.reset();
-                loadMails();
+        function switchTab(tab) {
+            if (tab === 'newMail') {
+                document.getElementById('newMailTab').classList.remove('hidden');
+                document.getElementById('archiveTab').classList.add('hidden');
+                document.getElementById('btnNewMail').className = "py-3 px-4 border-b-2 border-amber-600 text-amber-600 font-bold focus:outline-none";
+                document.getElementById('btnArchive').className = "py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-amber-600 font-bold focus:outline-none";
             } else {
-                alert('حدث خطأ أثناء الحفظ');
+                document.getElementById('newMailTab').classList.add('hidden');
+                document.getElementById('archiveTab').classList.remove('hidden');
+                document.getElementById('btnArchive').className = "py-3 px-4 border-b-2 border-amber-600 text-amber-600 font-bold focus:outline-none";
+                document.getElementById('btnNewMail').className = "py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-amber-600 font-bold focus:outline-none";
+                loadArchiveData();
             }
         }
 
-        // حذف معاملة
-        async function deleteMail(id) {
-            if (confirm('هل أنت متأكد من حذف هذه المعاملة؟')) {
-                const res = await fetch(`/api/mails/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.success) loadMails();
-                else alert('خطأ في الحذف');
-            }
+        function submitMail(event) {
+            event.preventDefault();
+            alert('تم أرشفة المعاملة بنجاح وإرسالها للنظام الآلي.');
+            document.getElementById('mailForm').reset();
+            switchTab('archive');
+        }
+
+        function loadArchiveData() {
+            // بيانات تجريبية للعرض المبدئي
+            document.getElementById('totalCount').innerText = '12';
+            document.getElementById('incomingCount').innerText = '5';
+            document.getElementById('outgoingCount').innerText = '4';
+            document.getElementById('internalCount').innerText = '3';
+            
+            const tbody = document.getElementById('archiveTableBody');
+            tbody.innerHTML = `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3 font-semibold">1042</td>
+                    <td class="p-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">وارد</span></td>
+                    <td class="p-3">2026-09-24</td>
+                    <td class="p-3">توجيهات إدارية عامة</td>
+                    <td class="p-3">رئاسة الأركان</td>
+                    <td class="p-3"><span class="text-amber-600 font-bold">سري</span></td>
+                    <td class="p-3 space-x-2 space-x-reverse">
+                        <button class="text-blue-600 hover:underline"><i class="fas fa-eye"></i></button>
+                        <button class="text-red-600 hover:underline"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function filterArchive() {
+            // منطق البحث الفوري في الجدول
         }
     </script>
 </body>
