@@ -6,7 +6,7 @@
     <title>أرشيف كلية الشؤون الفنية والإدارية - وزارة الدفاع</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- مكتبات Firebase السحابية -->
+    <!-- مكتبات Firebase السحابية التوافقية -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
@@ -230,16 +230,17 @@
         .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 
-    <!-- سكربت التحكم والتخزين السحابي (Firebase) -->
+    <!-- سكربت الاتصال السحابي وإدارة البيانات -->
     <script>
-        // إعدادات الاتصال بـ Firebase (قم باستبدالها ببيانات مشروعك الفعلي)
+        // إعدادات الاتصال بمشروعك الحقيقي على Firebase
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyChF4XwhO1aowa26W5rDAEF-VoeZZjIFfM",
+            authDomain: "mod-archive.firebaseapp.com",
+            projectId: "mod-archive",
+            storageBucket: "mod-archive.firebasestorage.app",
+            messagingSenderId: "885002456026",
+            appId: "1:885002456026:web:918abcbd95902b5fe70ee3",
+            measurementId: "G-6F13SMGYND"
         };
 
         // تهيئة Firebase
@@ -248,7 +249,7 @@
         const storage = firebase.storage();
 
         let currentUser = null;
-        let globalMailsCache = []; // التخزين المؤقت للبيانات لعمليات البحث والعرض
+        let globalMailsCache = [];
 
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -295,7 +296,7 @@
             }
         }
 
-        // معالجة إرسال النموذج وحفظ الملفات في سحابة Firebase Storage و Firestore
+        // إرسال وتخزين المعاملات وملفات الـ PDF سحابياً
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -338,14 +339,14 @@
                 switchTab('archiveTab');
             } catch (error) {
                 console.error("خطأ أثناء الحفظ السحابي:", error);
-                alert('حدث خطأ أثناء الحفظ، تأكد من اتصال الإنترنت وصلاحيات السحابة.');
+                alert('حدث خطأ أثناء الحفظ، تأكد من اتصال الإنترنت وصلاحيات القواعد (Rules) في فايربيس.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف السحابي';
             }
         });
 
-        // دالة جلب المعاملات من قاعدة البيانات السحابية
+        // جلب المعاملات من قاعدة البيانات
         function loadMails() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري مزامنة البيانات من السحابة...</td></tr>`;
@@ -358,11 +359,11 @@
                 renderTableData(globalMailsCache);
             }).catch((error) => {
                 console.error("خطأ في الجلب:", error);
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">فشل الاتصال بقاعدة البيانات السحابية.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">فشل الاتصال بقاعدة البيانات. تأكد من إعدادات القواعد في فايربيس.</td></tr>`;
             });
         }
 
-        // عرض البيانات في الجدول وتحديث الإحصائيات
+        // عرض البيانات
         function renderTableData(mails) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
@@ -418,17 +419,15 @@
             document.getElementById('completedCount').innerText = completed;
         }
 
-        // دالة الحذف من السحابة (Firestore + Storage)
+        // حذف معاملة
         async function deleteMail(docId, pdfUrl) {
             if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً من الأرشيف السحابي؟')) return;
             
             try {
-                // حذف الملف المرفق من Storage إذا وجد
                 if(pdfUrl) {
                     const desertRef = storage.refFromURL(pdfUrl);
-                    await desertRef.delete().catch(err => console.log("الملف غير موجود في التخزين أو تم حذفه مسبقاً"));
+                    await desertRef.delete().catch(err => console.log("الملف غير موجود في التخزين"));
                 }
-                // حذف السجل النصي من Firestore
                 await db.collection('military_mails_archive').doc(docId).delete();
                 
                 alert('تم حذف المعاملة بنجاح.');
@@ -439,7 +438,7 @@
             }
         }
 
-        // فلترة الجدول حسب البحث الحي
+        // البحث الحي
         function filterTable() {
             const input = document.getElementById('searchInput').value.toLowerCase();
             const filtered = globalMailsCache.filter(mail => {
