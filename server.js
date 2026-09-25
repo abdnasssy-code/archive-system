@@ -42,7 +42,6 @@ function initDB() {
         password TEXT,
         role TEXT
     )`, () => {
-        // إنشاء حساب مسؤول افتراضي إذا لم يكن موجوداً
         db.get(`SELECT * FROM users WHERE username = 'admin'`, (err, row) => {
             if (!row) {
                 db.run(`INSERT INTO users (username, password, role) VALUES ('admin', '123456', 'admin')`);
@@ -77,8 +76,8 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// جلب جميع المستندات
-app.get('/api/documents', (req, res) => {
+// جلب جميع المستندات (يدعم المسارين)
+app.get(['/api/documents', '/api/mails'], (req, res) => {
     db.all(`SELECT * FROM documents ORDER BY id DESC`, [], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.message });
@@ -87,9 +86,15 @@ app.get('/api/documents', (req, res) => {
     });
 });
 
-// إضافة مستند جديد مع ملف
-app.post('/api/documents', upload.single('file'), (req, res) => {
-    const { title, doc_number, date, category, description } = req.body;
+// إضافة مستند جديد (يدعم المسارين لضمان توافق الواجهة القديمة والجديدة)
+app.post(['/api/documents', '/api/mails'], upload.single('file'), (req, res) => {
+    // التقاط الحقول بغض النظر عن تسميتها في الواجهة (title أو subject وغيرها)
+    const title = req.body.title || req.body.subject || 'بدون عنوان';
+    const doc_number = req.body.doc_number || req.body.mail_number || '';
+    const date = req.body.date || new Date().toISOString().split('T')[0];
+    const category = req.body.category || req.body.mail_type || 'عام';
+    const description = req.body.description || req.body.summary || '';
+    
     const filePath = req.file ? `/uploads/${req.file.filename}` : null;
 
     const query = `INSERT INTO documents (title, doc_number, date, category, description, file_path) VALUES (?, ?, ?, ?, ?, ?)`;
@@ -97,12 +102,12 @@ app.post('/api/documents', upload.single('file'), (req, res) => {
         if (err) {
             return res.status(500).json({ success: false, error: err.message });
         }
-        res.json({ success: true, id: this.lastID });
+        res.json({ success: true, id: this.lastID, message: 'تم الحفظ بنجاح' });
     });
 });
 
 // حذف مستند
-app.delete('/api/documents/:id', (req, res) => {
+app.delete(['/api/documents/:id', '/api/mails/:id'], (req, res) => {
     const id = req.params.id;
     db.run(`DELETE FROM documents WHERE id = ?`, id, function(err) {
         if (err) {
