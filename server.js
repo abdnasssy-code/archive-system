@@ -24,7 +24,7 @@ const db = new sqlite3.Database(dbFile, (err) => {
     }
 });
 
-// إنشاء الجداول مع دعم الصادر والوارد
+// إنشاء الجداول مع ضمان وجود حقول الصادر والوارد بالقيم الصحيحة
 function initDB() {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,22 +65,38 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// جلب جميع المستندات
+// جلب جميع المستندات وتوحيد أسماء الحقول لمنع ظهور undefined في الجدول والعدادات
 app.get(['/api/documents', '/api/mails', '/mails', '/documents'], (req, res) => {
-    db.all(`SELECT * FROM documents ORDER BY id DESC`, [], (err, rows) => {
+    db.all(`SELECT id, 
+                   COALESCE(title, 'بدون عنوان') as title, 
+                   COALESCE(doc_number, '') as doc_number, 
+                   COALESCE(date, '') as date, 
+                   COALESCE(category, 'عام') as category, 
+                   COALESCE(type, 'وارد') as type, 
+                   COALESCE(description, '') as description, 
+                   file_path 
+            FROM documents ORDER BY id DESC`, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(rows || []);
     });
 });
 
-// إضافة مستند جديد (يتعامل مع كل أنماط الإرسال لمنع أي خطأ 500 أو 404 نهائياً)
+// إضافة مستند جديد والتقاط كافة احتمالات أسماء الحقول من الواجهة
 app.post(['/api/documents', '/api/mails', '/mails', '/documents'], (req, res) => {
     try {
         const title = req.body.title || req.body.subject || req.body.mail_title || 'بدون عنوان';
-        const doc_number = req.body.doc_number || req.body.mail_number || '';
+        const doc_number = req.body.doc_number || req.body.mail_number || req.body.number || '';
         const date = req.body.date || new Date().toISOString().split('T')[0];
-        const category = req.body.category || req.body.mail_type || 'عام';
-        const type = req.body.type || req.body.document_type || req.body.mail_direction || 'وارد';
+        const category = req.body.category || req.body.mail_type || req.body.section || 'عام';
+        
+        // التقاط نوع المعاملة بدقة لضمان عمل عدادات الصادر والوارد
+        let type = req.body.type || req.body.document_type || req.body.mail_direction || req.body.kind || 'وارد';
+        if (type.includes('صادر') || type.toLowerCase() === 'outgoing') {
+            type = 'صادر';
+        } else {
+            type = 'وارد';
+        }
+
         const description = req.body.description || req.body.summary || req.body.content || '';
         const filePath = req.body.file_path || null;
 
