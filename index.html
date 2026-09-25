@@ -18,7 +18,7 @@
             <form id="loginForm">
                 <div class="input-group">
                     <label>اسم المستخدم</label>
-                    <input type="text" id="loginUser" required placeholder="أدخل اسم المستخدم...">
+                    <input type="text" id="loginUser" required placeholder="أدخل اسم المستخدم (اكتب admin للصلاحيات الكاملة)...">
                 </div>
                 <div class="input-group">
                     <label>كلمة المرور</label>
@@ -223,21 +223,19 @@
         .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 
-    <!-- سكربت الحفظ الدائم (LocalStorage) -->
+    <!-- سكربت التحكم وتسجيل الدخول والحفظ الدائم -->
     <script>
         let currentUser = null;
 
-        // تسجيل الدخول (محلياً للاختبار السريع، يمكنك جعله يقبل أي بيانات أو تحديدها بدقة)
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const username = document.getElementById('loginUser'].value.trim();
-            const password = document.getElementById('loginPass'].value.trim();
+            const username = document.getElementById('loginUser').value.trim();
+            const password = document.getElementById('loginPass').value.trim();
             
-            // تحديد صلاحية افتراضية بناء على اسم المستخدم (مثال: admin مدير، غير ذلك موظف)
             if(username) {
                 currentUser = {
                     username: username,
-                    role: (username === 'admin' || username === 'مدير') ? 'admin' : 'staff'
+                    role: (username.toLowerCase() === 'admin' || username === 'مدير') ? 'admin' : 'staff'
                 };
 
                 document.getElementById('loginOverlay').style.display = 'none';
@@ -269,19 +267,20 @@
             });
             
             document.getElementById(tabId).classList.add('active-tab');
-            event.currentTarget.classList.add('active');
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
             
             if(tabId === 'archiveTab') {
                 loadMails();
             }
         }
 
-        // حفظ المعاملة الجديدة في التخزين الدائم للمتصفح LocalStorage
         document.getElementById('mailForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const newMail = {
-                id: Date.now(), // رقم تعريفي فريد يعتمد على الوقت
+                id: Date.now(),
                 mail_number: document.getElementById('mail_number').value,
                 mail_type: document.getElementById('mail_type').value,
                 reply_to: document.getElementById('reply_to').value,
@@ -294,11 +293,9 @@
                 pdf_name: document.getElementById('pdf_name').value
             };
 
-            // جلب البيانات القديمة أو إنشاء مصفوفة جديدة
             let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
-            mails.unshift(newMail); // إضافة المعاملة الجديدة في البداية
+            mails.unshift(newMail);
             
-            // حفظها بشكل دائم
             localStorage.setItem('military_mails_archive', JSON.stringify(mails));
 
             alert('تم حفظ وتوثيق المعاملة في الأرشيف بنجاح!');
@@ -306,7 +303,6 @@
             switchTab('archiveTab');
         });
 
-        // استرجاع وعرض المعاملات المحفوظة
         function loadMails() {
             let mails = JSON.parse(localStorage.getItem('military_mails_archive')) || [];
             
@@ -364,7 +360,6 @@
             document.getElementById('completedCount').innerText = completed;
         }
 
-        // حذف معاملة من التخزين الدائم
         function deleteMail(id) {
             if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً من الأرشيف؟')) return;
             
