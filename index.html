@@ -3,389 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أرشيف كلية الشؤون الفنية والإدارية - وزارة الدفاع</title>
-    <link rel="stylesheet" href="style.css">
+    <title>نظام الأرشيف والمراسلات الإدارية</title>
+    <!-- استيراد خطوط وتصميم أنيق Bootstrap & FontAwesome -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { background-color: #1e293b; color: #fff; }
+        .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .login-container { max-width: 400px; margin: 80px auto; padding: 20px; }
+        .current-date { font-size: 0.95rem; color: #cbd5e1; }
+    </style>
 </head>
 <body>
 
-    <!-- ================= شاشة تسجيل الدخول ================= -->
-    <div id="loginOverlay" class="login-overlay">
-        <div class="login-card">
-            <div class="login-header">
-                <h2>بوابة الديوان المركزي</h2>
-                <p>يرجى تسجيل الدخول للوصول إلى النظام</p>
-            </div>
-            <form id="loginForm">
-                <div class="input-group">
-                    <label>اسم المستخدم</label>
-                    <input type="text" id="loginUser" required placeholder="أدخل اسم المستخدم...">
+    <!-- شريط التنقل العلوي مع عرض التاريخ -->
+    <nav class="navbar navbar-expand-lg navbar-dark px-4 mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-archive ms-2"></i> نظام الأرشيف الرقمي</a>
+            <div id="dateDisplay" class="current-date"></div>
+        </div>
+    </nav>
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginSection" class="login-container">
+        <div class="card shadow-sm p-4">
+            <h4 class="text-center mb-4 text-dark"><i class="fas fa-user-lock ms-2"></i> تسجـيل الدخـول</h4>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="mb-3">
+                    <label class="form-label">اسم المستخدم</label>
+                    <input type="text" id="username" class="form-control" required>
                 </div>
-                <div class="input-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="loginPass" required placeholder="أدخل كلمة المرور...">
+                <div class="mb-3">
+                    <label class="form-label">كلمة المرور</label>
+                    <input type="password" id="password" class="form-control" required>
                 </div>
-                <button type="submit" class="btn-submit-custom">تسجيل الدخول للنظام</button>
-                <p id="loginError" class="login-error"></p>
+                <button type="submit" class="btn btn-primary w-100">دخول</button>
             </form>
-            <div class="login-hint">
-                <small>حساب المسؤول الافتراضي: <b>admin</b> / <b>123456</b></small><br>
-                <small>حساب مُدخل البريد: <b>staff</b> / <b>123456</b></small>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم والأرشيف (تظهر بعد تسجيل الدخول) -->
+    <div id="dashboardSection" class="container py-4" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>لوحة إدارة المراسلات والأرشيف</h3>
+            <button class="btn btn-outline-danger btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt ms-1"></i> تسجيل الخروج</button>
+        </div>
+
+        <!-- نموذج إضافة معاملة جديدة -->
+        <div class="card p-4 mb-4">
+            <h5 class="mb-3 text-secondary"><i class="fas fa-plus-circle ms-1"></i> إضافة معاملة جديدة</h5>
+            <form id="mailForm" onsubmit="addMail(event)">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">رقم الكتاب / المعاملة</label>
+                        <input type="text" name="mail_number" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">نوع البريد / المعاملة</label>
+                        <select name="mail_type" class="form-select" required>
+                            <option value="صادر">صادر</option>
+                            <option value="وارد">وارد</option>
+                            <option value="داخلي">داخلي</option>
+                            <option value="شكوى للرقابة">شكوى للرقابة</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">إشارة إلى (رد على)</label>
+                        <input type="text" name="reply_to" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">درجة السرية</label>
+                        <select name="secrecy_level" class="form-select">
+                            <option value="عادي">عادي</option>
+                            <option value="مكتوم">مكتوم</option>
+                            <option value="سري">سري</option>
+                            <option value="سري للغاية">سري للغاية</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">الجهة المرسلة</label>
+                        <input type="text" name="sender_dept" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">الجهة المستلمة</label>
+                        <input type="text" name="receiver_dept" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">موضوع الكتاب</label>
+                        <input type="text" name="subject" class="form-control" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">الخلاصة / النص</label>
+                        <textarea name="summary" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">إرفاق ملف PDF</label>
+                        <input type="file" name="pdf_file" class="form-control" accept="application/pdf">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100"><i class="fas fa-save ms-1"></i> حفظ وتوثيق المعاملة</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- جدول عرض الأرشيف -->
+        <div class="card p-3">
+            <h5 class="mb-3 text-secondary">سجل المعاملات والأرشيف</h5>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>الرقم</th>
+                            <th>النوع</th>
+                            <th>الموضوع</th>
+                            <th>المرسل</th>
+                            <th>المستلم</th>
+                            <th>التاريخ</th>
+                            <th>الملف</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mailsTableBody">
+                        <!-- يتم تعبئتها ديناميكياً -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- ================= النظام الأساسي (يُخفى حتى يتم تسجيل الدخول) ================= -->
-    <div id="appContainer" style="display: none;">
-        <header class="app-header">
-            <div class="header-container">
-                <div class="logo-area">
-                    <div class="official-emblem-img-container">
-                        <img src="mod_logo.jpg" alt="شعار وزارة الدفاع" class="ministry-logo-img" onerror="this.style.display='none'; this.parentElement.innerHTML='🦅';">
-                    </div>
-                    <div class="header-titles">
-                        <span class="ministry-tag">وزارة الدفاع ◄ إدارة التدريب</span>
-                        <h2>كلية الشؤون الفنية والإدارية</h2>
-                        <p id="userInfoDisplay">مرحباً بك (مسؤول النظام)</p>
-                    </div>
-                </div>
-                
-                <div class="nav-tabs">
-                    <button class="tab-btn active" onclick="switchTab('formTab')">تسجيل كتاب جديد</button>
-                    <button class="tab-btn" onclick="switchTab('archiveTab')">أرشيف المعاملات</button>
-                    <button class="tab-btn btn-logout" onclick="logoutSystem()">تسجيل خروج</button>
-                </div>
-            </div>
-        </header>
-
-        <main class="main-container">
-            <!-- تبويب تسجيل كتاب جديد (متاح للجميع) -->
-            <div id="formTab" class="tab-content active-tab">
-                <div class="form-card-container">
-                    <div class="panel-header-custom">
-                        <h2>تسجيل كتاب أو معاملة رسمية جديدة</h2>
-                        <p>أدخل بيانات الكتاب أو البريد الوارد/الصادر وتوثيقه في الأرشيف المركزي</p>
-                    </div>
-                    <div class="panel-body-custom">
-                        <form id="mailForm" enctype="multipart/form-data">
-                            <div class="form-grid">
-                                <div class="input-group">
-                                    <label for="mail_number">رقم الكتاب / المعاملة *</label>
-                                    <input type="text" id="mail_number" name="mail_number" required placeholder="مثال: 452/ش.ف.إ">
-                                </div>
-                                <div class="input-group">
-                                    <label for="mail_type">نوع المعاملة *</label>
-                                    <select id="mail_type" name="mail_type" required>
-                                        <option value="صادر">صادر</option>
-                                        <option value="وارد">وارد</option>
-                                        <option value="داخلي">داخلي</option>
-                                    </select>
-                                </div>
-                                <div class="input-group full-width highlight-box">
-                                    <label for="reply_to">إشارة إلى الكتاب (في حال كان رداً على كتاب سابق)</label>
-                                    <input type="text" id="reply_to" name="reply_to" placeholder="رقم الكتاب المراد الرد عليه (اختياري)">
-                                </div>
-                                <div class="input-group full-width">
-                                    <label for="subject">موضوع الكتاب *</label>
-                                    <input type="text" id="subject" name="subject" required placeholder="أدخل موضوع الكتاب بإيجاز واحترافية">
-                                </div>
-                                <div class="input-group">
-                                    <label for="sender_dept">الجهة المرسلة *</label>
-                                    <input type="text" id="sender_dept" name="sender_dept" required placeholder="القسم المُرسِل">
-                                </div>
-                                <div class="input-group">
-                                    <label for="receiver_dept">الجهة المستلمة *</label>
-                                    <input type="text" id="receiver_dept" name="receiver_dept" required placeholder="القسم المُستقبِل">
-                                </div>
-                                <div class="input-group">
-                                    <label for="secrecy_level">درجة السرية</label>
-                                    <select id="secrecy_level" name="secrecy_level">
-                                        <option value="عادي">عادي</option>
-                                        <option value="مكتوم">مكتوم</option>
-                                        <option value="سري">سري</option>
-                                        <option value="سري للغاية">سري للغاية</option>
-                                    </select>
-                                </div>
-                                <div class="input-group">
-                                    <label for="status">حالة المعاملة</label>
-                                    <select id="status" name="status">
-                                        <option value="قيد الإجراء">قيد الإجراء</option>
-                                        <option value="منجز">منجز</option>
-                                        <option value="مؤرشف">مؤرشف</option>
-                                    </select>
-                                </div>
-                                <div class="input-group full-width">
-                                    <label for="summary">خلاصة أو نص الكتاب</label>
-                                    <textarea id="summary" name="summary" rows="3" placeholder="اكتب ملخصاً وافياً عن محتوى الكتاب..."></textarea>
-                                </div>
-                                <div class="input-group full-width">
-                                    <label for="pdf_file">إرفاق نسخة PDF رسمية</label>
-                                    <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input">
-                                </div>
-                                <div class="full-width">
-                                    <button type="submit" class="btn-submit-custom">حفظ وتوثيق المعاملة في الأرشيف</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- تبويب أرشيف المعاملات -->
-            <div id="archiveTab" class="tab-content">
-                <div class="stats-container">
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">إجمالي المعاملات</span>
-                            <span class="stat-number" id="totalCount">0</span>
-                        </div>
-                        <div class="stat-icon">📁</div>
-                    </div>
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">الكتب الواردة</span>
-                            <span class="stat-number" id="incomingCount">0</span>
-                        </div>
-                        <div class="stat-icon">📥</div>
-                    </div>
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">الكتب الصادرة</span>
-                            <span class="stat-number" id="outgoingCount">0</span>
-                        </div>
-                        <div class="stat-icon">📤</div>
-                    </div>
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">المعاملات المنجزة</span>
-                            <span class="stat-number" id="completedCount">0</span>
-                        </div>
-                        <div class="stat-icon">✅</div>
-                    </div>
-                </div>
-
-                <div class="archive-panel">
-                    <div class="panel-header-archive space-between">
-                        <h2>سجل الأرشيف المركزي</h2>
-                        <div class="table-tools">
-                            <input type="text" id="searchInput" class="search-field" placeholder="ابحث برقم الكتاب، الموضوع..." onkeyup="filterTable()">
-                            <button class="btn-refresh-custom" onclick="loadMails()">تحديث القائمة</button>
-                        </div>
-                    </div>
-                    <div class="table-container">
-                        <table id="mailsTable">
-                            <thead>
-                                <tr>
-                                    <th>الرقم / النوع</th>
-                                    <th>إشارة الرد</th>
-                                    <th>الموضوع</th>
-                                    <th>المرسل ← المستقبل</th>
-                                    <th>السرية والحالة</th>
-                                    <th>المرفق</th>
-                                    <th id="thActionHeader" style="display:none;">إدارة</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tableBody">
-                                <tr><td colspan="7" class="loading-row">جاري تحميل البيانات...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- التنسيقات الإضافية لشاشة تسجيل الدخول -->
-    <style>
-        .login-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #0b1120;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        .login-card {
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            border-top: 4px solid #d4af37;
-        }
-        .login-header h2 { margin: 0 0 5px 0; color: #0a192f; font-size: 20px; }
-        .login-header p { margin: 0 0 20px 0; color: #64748b; font-size: 12px; }
-        .login-error { color: #dc2626; font-size: 12px; margin-top: 10px; text-align: center; }
-        .login-hint { margin-top: 15px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center; }
-        .btn-logout { background: #dc2626 !important; color: white !important; }
-        .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .btn-delete:hover { background: #dc2626; color: white; }
-        .official-emblem-img-container {
-            width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
-            border: 2px solid #d4af37; display: flex; align-items: center; justify-content: center; background: #050d1a;
-        }
-        .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
-    </style>
-
-    <!-- سكربت التحكم بالصلاحيات وجلسة المستخدم -->
     <script>
-        let currentUser = null;
+        // عرض تاريخ اليوم تلقائياً
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const todayStr = new Date().toLocaleDateString('ar-SY', options);
+        document.getElementById('dateDisplay').innerHTML = `<i class="fas fa-calendar-alt ms-1"></i> ${todayStr}`;
 
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        // دالة تسجيل الدخول
+        async function handleLogin(e) {
             e.preventDefault();
-            const username = document.getElementById('loginUser').value;
-            const password = document.getElementById('loginPass').value;
-            const errEl = document.getElementById('loginError');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
 
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-                if(data.success) {
-                    currentUser = data.user;
-                    document.getElementById('loginOverlay').style.display = 'none';
-                    document.getElementById('appContainer').style.display = 'block';
-                    
-                    if(currentUser.role === 'admin') {
-                        document.getElementById('userInfoDisplay').innerText = 'الصلاحية: مسؤول النظام (مدير)';
-                    } else {
-                        document.getElementById('userInfoDisplay').innerText = 'الصلاحية: مُدخل بريد';
-                    }
-                    loadMails();
-                } else {
-                    errEl.innerText = data.error;
-                }
-            } catch(err) {
-                errEl.innerText = 'حدث خطأ في الاتصال بالخادم.';
-            }
-        });
-
-        function logoutSystem() {
-            currentUser = null;
-            document.getElementById('appContainer').style.display = 'none';
-            document.getElementById('loginOverlay').style.display = 'flex';
-            document.getElementById('loginForm').reset();
-            document.getElementById('loginError').innerText = '';
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                if(!el.classList.contains('btn-logout')) el.classList.remove('active');
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
             });
-            
-            document.getElementById(tabId).classList.add('active-tab');
-            event.currentTarget.classList.add('active');
-            
-            if(tabId === 'archiveTab') {
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('dashboardSection').style.display = 'block';
                 loadMails();
+            } else {
+                alert(data.error || 'خطأ في اسم المستخدم أو كلمة المرور');
             }
         }
 
-        document.getElementById('mailForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
+        function logout() {
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+        }
 
-            try {
-                const response = await fetch('/api/mails', { method: 'POST', body: formData });
-                const result = await response.json();
-                if(result.success) {
-                    alert(result.message);
-                    this.reset();
-                    switchTab('archiveTab');
-                } else {
-                    alert('خطأ: ' + result.error);
-                }
-            } catch (err) {
-                alert('حدث خطأ أثناء الاتصال بالخادم.');
-            }
-        });
-
+        // جلب المعاملات وعرضها
         async function loadMails() {
-            try {
-                const response = await fetch('/api/mails');
-                const mails = await response.json();
-                
-                const tbody = document.getElementById('tableBody');
-                tbody.innerHTML = '';
+            const res = await fetch('/api/mails');
+            const mails = await res.json();
+            const tbody = document.getElementById('mailsTableBody');
+            tbody.innerHTML = '';
+            mails.forEach(m => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${m.mail_number || ''}</td>
+                        <td><span class="badge bg-secondary">${m.mail_type || ''}</span></td>
+                        <td>${m.subject || ''}</td>
+                        <td>${m.sender_dept || ''}</td>
+                        <td>${m.receiver_dept || ''}</td>
+                        <td>${m.created_at ? m.created_at.split('T')[0] : ''}</td>
+                        <td>${m.pdf_path ? `<a href="${m.pdf_path}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="fas fa-file-pdf"></i> عرض</a>` : 'لا يوجد'}</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteMail(${m.id})"><i class="fas fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
+        }
 
-                let total = mails.length, incoming = 0, outgoing = 0, completed = 0;
-                const isAdmin = currentUser && currentUser.role === 'admin';
-
-                // إظهار أو إخفاء عمود الحذف بناءً على الصلاحية
-                const actionHeader = document.getElementById('thActionHeader');
-                if(isAdmin) {
-                    actionHeader.style.display = '';
-                } else {
-                    actionHeader.style.display = 'none';
-                }
-
-                if(mails.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملات مسجلة حتى الآن.</td></tr>`;
-                    return;
-                }
-
-                mails.forEach(mail => {
-                    if(mail.mail_type === 'وارد') incoming++;
-                    if(mail.mail_type === 'صادر') outgoing++;
-                    if(mail.status === 'منجز') completed++;
-
-                    const tr = document.createElement('tr');
-                    const replyHtml = mail.reply_to ? `<span class="reply-badge">رد على: ${mail.reply_to}</span>` : `<span style="color:#94a3b8; font-size:11px;">كتاب رئيسي</span>`;
-                    const pdfHtml = mail.pdf_path ? `<a href="${mail.pdf_path}" target="_blank" class="btn-pdf">📄 عرض PDF</a>` : `<span style="color:#94a3b8; font-size:11px;">بدون</span>`;
-                    
-                    let deleteTd = '';
-                    if(isAdmin) {
-                        deleteTd = `<td><button class="btn-delete" onclick="deleteMail(${mail.id})">🗑️ حذف</button></td>`;
-                    }
-
-                    tr.innerHTML = `
-                        <td><strong>${mail.mail_number}</strong><br><span class="badge badge-normal">${mail.mail_type}</span></td>
-                        <td>${replyHtml}</td>
-                        <td><strong>${mail.subject}</strong></td>
-                        <td>${mail.sender_dept} ← ${mail.receiver_dept}</td>
-                        <td><span class="badge badge-secret">${mail.secrecy_level || 'عادي'}</span><br><span class="badge badge-status">${mail.status}</span></td>
-                        <td>${pdfHtml}</td>
-                        ${deleteTd}
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                document.getElementById('totalCount').innerText = total;
-                document.getElementById('incomingCount').innerText = incoming;
-                document.getElementById('outgoingCount').innerText = outgoing;
-                document.getElementById('completedCount').innerText = completed;
-
-            } catch (err) {
-                console.error(err);
+        // إضافة معاملة جديدة عبر الـ API
+        async function addMail(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const res = await fetch('/api/mails', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('تم الحفظ بنجاح');
+                e.target.reset();
+                loadMails();
+            } else {
+                alert('حدث خطأ أثناء الحفظ');
             }
         }
 
+        // حذف معاملة
         async function deleteMail(id) {
-            if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً من الأرشيف؟')) return;
-            try {
+            if (confirm('هل أنت متأكد من حذف هذه المعاملة؟')) {
                 const res = await fetch(`/api/mails/${id}`, { method: 'DELETE' });
                 const data = await res.json();
-                if(data.success) {
-                    loadMails();
-                } else {
-                    alert('فشل الحذف');
-                }
-            } catch(err) {
-                alert('خطأ في الاتصال');
+                if (data.success) loadMails();
+                else alert('خطأ في الحذف');
             }
-        }
-
-        function filterTable() {
-            const input = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#tableBody tr');
-            rows.forEach(row => {
-                row.style.display = row.innerText.toLowerCase().includes(input) ? '' : 'none';
-            });
         }
     </script>
 </body>
