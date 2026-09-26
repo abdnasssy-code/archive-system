@@ -33,6 +33,30 @@
         </div>
     </div>
 
+    <!-- ================= نافذة تغيير كلمات السر (خاصة بالمدير) ================= -->
+    <div id="passChangeModal" class="appointment-alert-overlay" style="display: none;">
+        <div class="login-card" style="border-top: 4px solid #0284c7; max-width: 420px;">
+            <div class="login-header">
+                <h2>⚙️ إعدادات كلمات السر للنظام</h2>
+                <p>تعديل كلمة سر المدير وكلمة سر الزوار وحفظها سحابياً</p>
+            </div>
+            <form id="changePassForm">
+                <div class="input-group" style="text-align: right; margin-bottom: 12px;">
+                    <label style="font-size: 13px; font-weight: bold;">كلمة سر المدير الجديدة (Admin)</label>
+                    <input type="text" id="newAdminPass" required placeholder="أدخل كلمة سر المدير الجديدة...">
+                </div>
+                <div class="input-group" style="text-align: right; margin-bottom: 15px;">
+                    <label style="font-size: 13px; font-weight: bold;">كلمة سر الزوار الجديدة (Visitor)</label>
+                    <input type="text" id="newVisitorPass" required placeholder="أدخل كلمة سر الزوار الجديدة...">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-submit-custom" style="background: #16a34a; flex: 1;" id="savePassBtn">حفظ التغييرات</button>
+                    <button type="button" onclick="closePassModal()" class="btn-submit-custom" style="background: #64748b; width: 80px;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ================= نافذة التنبيهات العائمة للمواعيد القريبة ================= -->
     <div id="appointmentAlertModal" class="appointment-alert-overlay" style="display: none;">
         <div class="appointment-alert-card">
@@ -63,16 +87,16 @@
                 
                 <div class="nav-tabs">
                     <button class="tab-btn active" onclick="switchTab('formTab')">تسجيل كتاب جديد</button>
-                    <!-- التبويبات أدناه تظهر للأدمن فقط -->
                     <button class="tab-btn admin-only" onclick="switchTab('archiveTab')" style="display: none;">أرشيف المعاملات</button>
                     <button class="tab-btn tab-btn-appointments admin-only" onclick="switchTab('appointmentsTab')" style="display: none;">📅 مواعيد المدير</button>
+                    <button class="tab-btn admin-only" onclick="openPassModal()" style="display: none; background: #0369a1; color: white;">⚙️ كلمة السر</button>
                     <button class="tab-btn btn-logout" onclick="logoutSystem()">تسجيل خروج</button>
                 </div>
             </div>
         </header>
 
         <main class="main-container">
-            <!-- ================= تبويب تسجيل كتاب جديد (متاح للجميع) ================= -->
+            <!-- ================= تبويب تسجيل كتاب جديد ================= -->
             <div id="formTab" class="tab-content active-tab">
                 <div class="form-card-container">
                     <div class="panel-header-custom">
@@ -227,7 +251,6 @@
 
             <!-- ================= تبويب مواعيد وجدولة المدير (للأدمن فقط) ================= -->
             <div id="appointmentsTab" class="tab-content admin-only" style="display: none;">
-                
                 <div id="appointmentFormContainer" class="form-card-container" style="margin-bottom: 25px;">
                     <div class="panel-header-appointments">
                         <h2>📌 لوحة جدولة وتنسيق مواعيد المدير</h2>
@@ -372,7 +395,6 @@
         }
         .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* ================= ألوان وتنسيقات تبويب المواعيد ================= */
         .tab-btn-appointments {
             background: rgba(212, 175, 55, 0.1) !important;
             border-bottom: 3px solid #d4af37 !important;
@@ -441,16 +463,17 @@
         }
     </style>
 
-    <!-- ================= سكربت التشغيل المطور ================= -->
+    <!-- ================= سكربت التشغيل الديناميكي لكلمات السر ================= -->
     <script>
         const SUPABASE_URL = 'https://rzlpuhabircpnmmwbbzo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bHB1aGFiaXJjcG5tbXdiYnpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjQ0OTgsImV4cCI6MjEwNjAwMDQ5OH0.DcP18cHurdmYaLdAK-M_k5i-X4Sq-8lz0wWAr9i3K7U';
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const ACCOUNTS = {
-            adminPass: "admin123",    // كلمة سر المدير (كامل الصلاحيات)
-            visitorPass: "user123"    // كلمة سر الزوار (إضافة بريد فقط)
+        // القيم الافتراضية المحلية (في حال انقطاع الشبكة)
+        let ACCOUNTS = {
+            adminPass: "admin123",
+            visitorPass: "user123"
         };
 
         let currentUser = null;
@@ -458,12 +481,34 @@
         let globalAppointmentsCache = [];
         let alertInterval = null;
 
-        // تسجيل الدخول مع توزيع الصلاحيات
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        // جلب كلمات السر الديناميكية من Supabase عند تحميل الصفحة
+        async function fetchSystemPasswords() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('system_settings')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+
+                if (data) {
+                    ACCOUNTS.adminPass = data.admin_pass;
+                    ACCOUNTS.visitorPass = data.visitor_pass;
+                }
+            } catch (e) {
+                console.log("استخدام كلمات السر الافتراضية المحلية.");
+            }
+        }
+        fetchSystemPasswords();
+
+        // تسجيل الدخول
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('loginUser').value.trim();
             const password = document.getElementById('loginPass').value.trim();
             const errorEl = document.getElementById('loginError');
+
+            // إعطاء فرصة سريعة لجلب التحديثات
+            await fetchSystemPasswords();
 
             if (password === ACCOUNTS.adminPass) {
                 currentUser = { username: username || 'المدير العام', role: 'admin' };
@@ -480,7 +525,6 @@
             const roleBadge = currentUser.role === 'admin' ? '(مدير النظام - صلاحيات كاملة)' : '(مُدخل بريد - إضافة بريد فقط)';
             document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} ${roleBadge}`;
 
-            // تطبيق الصلاحيات وحظر الزائر من رؤية الأرشيف والمواعيد
             applyPermissionsUI();
 
             if (currentUser.role === 'admin') {
@@ -492,16 +536,62 @@
             }
         });
 
+        // إدارة كلمات السر (خاص بالمدير)
+        function openPassModal() {
+            if(currentUser.role !== 'admin') return;
+            document.getElementById('newAdminPass').value = ACCOUNTS.adminPass;
+            document.getElementById('newVisitorPass').value = ACCOUNTS.visitorPass;
+            document.getElementById('passChangeModal').style.display = 'flex';
+        }
+
+        function closePassModal() {
+            document.getElementById('passChangeModal').style.display = 'none';
+        }
+
+        document.getElementById('changePassForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if(currentUser.role !== 'admin') return;
+
+            const saveBtn = document.getElementById('savePassBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerText = 'جاري الحفظ...';
+
+            const newAdmin = document.getElementById('newAdminPass').value.trim();
+            const newVisitor = document.getElementById('newVisitorPass').value.trim();
+
+            try {
+                const { error } = await supabaseClient
+                    .from('system_settings')
+                    .upsert({
+                        id: 1,
+                        admin_pass: newAdmin,
+                        visitor_pass: newVisitor,
+                        updated_at: new Date()
+                    });
+
+                if(error) throw error;
+
+                ACCOUNTS.adminPass = newAdmin;
+                ACCOUNTS.visitorPass = newVisitor;
+
+                alert('تم تحديث كلمات السر بنجاح بالسحابة!');
+                closePassModal();
+            } catch (error) {
+                alert('فشل حفظ كلمات السر: ' + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = 'حفظ التغييرات';
+            }
+        });
+
         function applyPermissionsUI() {
             const isAdmin = currentUser && currentUser.role === 'admin';
             
-            // إظهار عناصر الأدمن فقط وإخفاؤها تماماً عن الزائر
             const adminElements = document.querySelectorAll('.admin-only');
             adminElements.forEach(el => {
                 el.style.display = isAdmin ? '' : 'none';
             });
 
-            // توجيه الزائر تلقائياً إلى تبويب إضافة كتاب جديد فقط
             if (!isAdmin) {
                 switchTab('formTab');
             }
@@ -517,7 +607,6 @@
         }
 
         function switchTab(tabId) {
-            // حظر الزائر برمجياً من فتح أي تبويب غير تبويب إضافة كتاب جديد
             if (currentUser && currentUser.role !== 'admin' && tabId !== 'formTab') {
                 alert('عذراً، هذه الصفحة مخصصة لمدير النظام فقط.');
                 return;
@@ -537,7 +626,7 @@
             if (tabId === 'appointmentsTab' && currentUser.role === 'admin') loadAppointments();
         }
 
-        // ================= إضافة وتوثيق كتاب بريد جديد (متاح للجميع) =================
+        // ================= إضافة وتوثيق كتاب بريد جديد =================
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -592,7 +681,6 @@
                 alert('تم حفظ وتوثيق المعاملة بنجاح باسم المسؤول: ' + currentUser.username);
                 document.getElementById('mailForm').reset();
 
-                // بالنسبة للأدمن ينتقل للأرشيف، وللضيف تبقى في نفس الصفحة
                 if (currentUser.role === 'admin') {
                     switchTab('archiveTab');
                 }
@@ -605,7 +693,7 @@
             }
         });
 
-        // ================= إضافة موعد جديد للمدير (خاص بالمدير) =================
+        // ================= إضافة موعد جديد للمدير =================
         document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if(currentUser.role !== 'admin') {
