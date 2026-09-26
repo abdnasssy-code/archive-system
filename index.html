@@ -102,9 +102,6 @@
         .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-delete:hover { background: #dc2626; color: white; }
 
-        .btn-tg { background: #0284c7; color: white; padding: 6px 12px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: bold; display: inline-block; }
-        .btn-tg:hover { background: #0369a1; }
-
         /* نافذة التنبيه الهامة */
         .appointment-alert-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -128,10 +125,10 @@
             <form id="loginForm">
                 <div class="input-group">
                     <label>اسم المستخدم</label>
-                    <input type="text" id="loginUser" required placeholder="اسم المستخدم...">
+                    <input type="text" id="loginUser" required placeholder="ادخل admin للمدير أو اسمك...">
                 </div>
                 <div class="input-group">
-                    <label>كلمة المرور</label>
+                    <label>كلمة المرور (الموحدة: 123456)</label>
                     <input type="password" id="loginPass" required placeholder="أدخل كلمة المرور...">
                 </div>
                 <button type="submit" class="btn-submit-custom">دخول</button>
@@ -179,7 +176,7 @@
                 <div id="adminAppointmentBox" class="form-card-container" style="display: none;">
                     <div class="panel-header-custom" style="background: #1e3a8a;">
                         <h2>📌 إضافة موعد جديد لجدول المدير (خاص بـ Admin)</h2>
-                        <p>تحديد موعد جديد مع ضبط الوقت والمدة وأرقام الهواتف للتنبيهات</p>
+                        <p>تحديد موعد جديد مع ضبط الوقت والمدة بدقة</p>
                     </div>
                     <div class="panel-body-custom">
                         <form id="appointmentForm">
@@ -211,14 +208,6 @@
                                     <input type="text" id="apt_with" required placeholder="مثال: رئيس قسم التدريب">
                                 </div>
                                 <div class="input-group">
-                                    <label for="apt_guest_phone">رقم هاتف الضيف</label>
-                                    <input type="text" id="apt_guest_phone" placeholder="مثال: +9639xxxxxxxx">
-                                </div>
-                                <div class="input-group">
-                                    <label for="apt_manager_phone">رقم هاتف مدير الكلية</label>
-                                    <input type="text" id="apt_manager_phone" placeholder="مثال: +9639xxxxxxxx">
-                                </div>
-                                <div class="input-group">
                                     <label for="apt_location">مكان الموعد</label>
                                     <input type="text" id="apt_location" value="مكتب مدير الكلية">
                                 </div>
@@ -247,14 +236,13 @@
                                     <th>التاريخ والوقت</th>
                                     <th>المدة</th>
                                     <th>عنوان الموعد</th>
-                                    <th>الطرف المقابل والهواتف</th>
+                                    <th>الطرف المقابل</th>
                                     <th>المكان والملاحظات</th>
-                                    <th>إشعار تيليجرام</th>
                                     <th id="thAptAction" style="display:none;">إدارة</th>
                                 </tr>
                             </thead>
                             <tbody id="appointmentsTableBody">
-                                <tr><td colspan="7" style="text-align: center; font-weight: bold; padding: 20px;">جاري جلب جدول المواعيد...</td></tr>
+                                <tr><td colspan="6" style="text-align: center; font-weight: bold; padding: 20px;">جاري جلب جدول المواعيد...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -294,7 +282,7 @@
             const password = document.getElementById('loginPass').value.trim();
 
             if(password !== SYSTEM_SHARED_PASSWORD) {
-                document.getElementById('loginError').innerText = 'كلمة المرور خاطئة! يرجى المحاولة مرة أخرى.';
+                document.getElementById('loginError').innerText = 'كلمة المرور خاطئة! الكلمة الموحدة هي: 123456';
                 return;
             }
 
@@ -346,8 +334,6 @@
                 apt_time: document.getElementById('apt_time').value,
                 apt_duration: document.getElementById('apt_duration').value,
                 apt_with: document.getElementById('apt_with').value,
-                apt_guest_phone: document.getElementById('apt_guest_phone').value || '',
-                apt_manager_phone: document.getElementById('apt_manager_phone').value || '',
                 apt_location: document.getElementById('apt_location').value,
                 apt_notes: document.getElementById('apt_notes').value,
                 created_by: currentUser.username
@@ -366,7 +352,7 @@
                 loadAppointments();
             } catch (err) {
                 console.error(err);
-                alert('فشل حفظ الموعد! يرجى التأكد من تشغيل كود SQL المطلوب في Supabase (بما فيها أعمدة الهواتف الجديدة).\nالخطأ: ' + err.message);
+                alert('فشل حفظ الموعد! يرجى التأكد من تشغيل كود SQL المطلوب في Supabase.\nالخطأ: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerText = 'حفظ وتثبيت الموعد';
@@ -376,7 +362,7 @@
         // جلب وقراءة المواعيد من قاعدة البيانات
         async function loadAppointments() {
             const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 15px;">جاري تحميل الجدول...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 15px;">جاري تحميل الجدول...</td></tr>`;
 
             try {
                 const { data, error } = await supabaseClient
@@ -389,11 +375,11 @@
 
                 renderAppointmentsTable(data || []);
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #dc2626; font-weight: bold;">لم يتم العثور على جدول المواعيد أو حدث خطأ بالاتصال.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #dc2626; font-weight: bold;">لم يتم العثور على جدول المواعيد أو حدث خطأ بالاتصال.</td></tr>`;
             }
         }
 
-        // عرض المواعيد بوضوح عالي جداً مع زر التيليجرام والهواتف
+        // عرض المواعيد بوضوح عالي جداً
         function renderAppointmentsTable(appointments) {
             const tbody = document.getElementById('appointmentsTableBody');
             tbody.innerHTML = '';
@@ -402,7 +388,7 @@
             document.getElementById('thAptAction').style.display = isAdmin ? '' : 'none';
 
             if(appointments.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" style="text-align: center; padding: 20px; font-weight: bold; color: #64748b;">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 6 : 5}" style="text-align: center; padding: 20px; font-weight: bold; color: #64748b;">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
                 return;
             }
 
@@ -410,18 +396,6 @@
                 const tr = document.createElement('tr');
                 let deleteTd = isAdmin ? `<td><button class="btn-delete" onclick="deleteAppointment(${apt.id})">حذف 🗑️</button></td>` : '';
                 
-                // صياغة نص رسالة التيليجرام جاهزة للإرسال
-                const telegramMsg = encodeURIComponent(
-                    `📌 إشعار موعد رسمي - كلية الشؤون الفنية والإدارية\n\n` +
-                    `🔹 الموضوع: ${apt.apt_title}\n` +
-                    `📅 التاريخ: ${apt.apt_date}\n` +
-                    `⏰ الوقت: ${apt.apt_time}\n` +
-                    `⏳ المدة: ${apt.apt_duration || 'ساعة'}\n` +
-                    `👤 الطرف المقابل: ${apt.apt_with}\n` +
-                    `📍 المكان: ${apt.apt_location || 'مكتب المدير'}`
-                );
-                const telegramLink = `https://t.me/share/url?url=&text=${telegramMsg}`;
-
                 tr.innerHTML = `
                     <td>
                         <span class="badge-date">📅 ${apt.apt_date}</span><br>
@@ -429,17 +403,10 @@
                     </td>
                     <td><span class="badge-duration">⏳ ${apt.apt_duration || 'ساعة'}</span></td>
                     <td><strong style="color: #1e3a8a; font-size: 14px;">${apt.apt_title}</strong></td>
-                    <td>
-                        <strong style="color: #0f172a;">👤 ${apt.apt_with}</strong><br>
-                        <span style="font-size: 11px; color: #64748b;">هاتف الضيف: ${apt.apt_guest_phone || 'غير متوفر'}</span><br>
-                        <span style="font-size: 11px; color: #64748b;">هاتف المدير: ${apt.apt_manager_phone || 'غير متوفر'}</span>
-                    </td>
+                    <td><strong style="color: #0f172a;">👤 ${apt.apt_with}</strong></td>
                     <td>
                         <div><b>المكان:</b> ${apt.apt_location || 'مكتب المدير'}</div>
                         <div style="font-size: 12px; color: #475569;"><b>ملاحظات:</b> ${apt.apt_notes || 'لا يوجد'}</div>
-                    </td>
-                    <td>
-                        <a href="${telegramLink}" target="_blank" class="btn-tg">✈️ إرسال تيليجرام</a>
                     </td>
                     ${deleteTd}
                 `;
