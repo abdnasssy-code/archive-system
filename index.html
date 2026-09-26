@@ -63,15 +63,16 @@
                 
                 <div class="nav-tabs">
                     <button class="tab-btn active" onclick="switchTab('formTab')">تسجيل كتاب جديد</button>
-                    <button class="tab-btn" onclick="switchTab('archiveTab')">أرشيف المعاملات</button>
-                    <button class="tab-btn tab-btn-appointments" onclick="switchTab('appointmentsTab')">📅 مواعيد المدير</button>
+                    <!-- التبويبات أدناه تظهر للأدمن فقط -->
+                    <button class="tab-btn admin-only" onclick="switchTab('archiveTab')" style="display: none;">أرشيف المعاملات</button>
+                    <button class="tab-btn tab-btn-appointments admin-only" onclick="switchTab('appointmentsTab')" style="display: none;">📅 مواعيد المدير</button>
                     <button class="tab-btn btn-logout" onclick="logoutSystem()">تسجيل خروج</button>
                 </div>
             </div>
         </header>
 
         <main class="main-container">
-            <!-- ================= تبويب تسجيل كتاب جديد ================= -->
+            <!-- ================= تبويب تسجيل كتاب جديد (متاح للجميع) ================= -->
             <div id="formTab" class="tab-content active-tab">
                 <div class="form-card-container">
                     <div class="panel-header-custom">
@@ -143,8 +144,8 @@
                 </div>
             </div>
 
-            <!-- ================= تبويب أرشيف المعاملات ================= -->
-            <div id="archiveTab" class="tab-content">
+            <!-- ================= تبويب أرشيف المعاملات (للأدمن فقط) ================= -->
+            <div id="archiveTab" class="tab-content admin-only" style="display: none;">
                 <div class="stats-container">
                     <div class="stat-card">
                         <div>
@@ -213,7 +214,7 @@
                                     <th>الحالة والسرية</th>
                                     <th>المُدخل (المسؤول)</th>
                                     <th>المرفق</th>
-                                    <th class="admin-only" id="thActionHeader" style="display:none;">إدارة</th>
+                                    <th id="thActionHeader">إدارة</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
@@ -224,11 +225,10 @@
                 </div>
             </div>
 
-            <!-- ================= تبويب مواعيد وجدولة المدير (محدث بالمدة وهواتف التواصل وتيليجرام) ================= -->
-            <div id="appointmentsTab" class="tab-content">
+            <!-- ================= تبويب مواعيد وجدولة المدير (للأدمن فقط) ================= -->
+            <div id="appointmentsTab" class="tab-content admin-only" style="display: none;">
                 
-                <!-- كرت إضافة الموعد (خاص بالـ Admin) -->
-                <div id="appointmentFormContainer" class="form-card-container admin-only" style="margin-bottom: 25px;">
+                <div id="appointmentFormContainer" class="form-card-container" style="margin-bottom: 25px;">
                     <div class="panel-header-appointments">
                         <h2>📌 لوحة جدولة وتنسيق مواعيد المدير</h2>
                         <p>تحديد المواعيد، مدة الجلسة، أرقام التواصل للتنبيه الآلي عبر تيليجرام قبل ساعة</p>
@@ -282,7 +282,6 @@
                     </div>
                 </div>
 
-                <!-- جدول المواعيد الرسمي -->
                 <div class="archive-panel appointments-panel-border">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 style="color: #0f172a; margin:0; display:flex; align-items:center; gap:8px;">
@@ -300,7 +299,7 @@
                                     <th>الطرف المقابل والهاتف</th>
                                     <th>المكان والملاحظات</th>
                                     <th>تنبيه تيليجرام</th>
-                                    <th class="admin-only" style="display:none;">إدارة</th>
+                                    <th>إدارة</th>
                                 </tr>
                             </thead>
                             <tbody id="appointmentsTableBody">
@@ -442,7 +441,7 @@
         }
     </style>
 
-    <!-- ================= سكربت التشغيل المطور مع أمان الـ Schema ================= -->
+    <!-- ================= سكربت التشغيل المطور ================= -->
     <script>
         const SUPABASE_URL = 'https://rzlpuhabircpnmmwbbzo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bHB1aGFiaXJjcG5tbXdiYnpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjQ0OTgsImV4cCI6MjEwNjAwMDQ5OH0.DcP18cHurdmYaLdAK-M_k5i-X4Sq-8lz0wWAr9i3K7U';
@@ -450,8 +449,8 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const ACCOUNTS = {
-            adminPass: "admin123",    // كلمة سر المدير (كامل الصلاحيات + المواعيد)
-            visitorPass: "user123"    // كلمة سر الزوار (إضافة بريد فقط + قراءة الأرشيف والمواعيد)
+            adminPass: "admin123",    // كلمة سر المدير (كامل الصلاحيات)
+            visitorPass: "user123"    // كلمة سر الزوار (إضافة بريد فقط)
         };
 
         let currentUser = null;
@@ -459,7 +458,7 @@
         let globalAppointmentsCache = [];
         let alertInterval = null;
 
-        // تسجيل الدخول
+        // تسجيل الدخول مع توزيع الصلاحيات
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('loginUser').value.trim();
@@ -478,30 +477,34 @@
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             
-            const roleBadge = currentUser.role === 'admin' ? '(مدير النظام - كامل الصلاحيات)' : '(زائر - إضافة بريد وقراءة فقط)';
+            const roleBadge = currentUser.role === 'admin' ? '(مدير النظام - صلاحيات كاملة)' : '(مُدخل بريد - إضافة بريد فقط)';
             document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} ${roleBadge}`;
 
+            // تطبيق الصلاحيات وحظر الزائر من رؤية الأرشيف والمواعيد
             applyPermissionsUI();
 
-            loadMails();
-            loadAppointments();
+            if (currentUser.role === 'admin') {
+                loadMails();
+                loadAppointments();
 
-            // بدء فحص المواعيد دورياً كل 30 ثانية
-            if(alertInterval) clearInterval(alertInterval);
-            alertInterval = setInterval(checkUpcomingAppointments, 30000);
+                if(alertInterval) clearInterval(alertInterval);
+                alertInterval = setInterval(checkUpcomingAppointments, 30000);
+            }
         });
 
         function applyPermissionsUI() {
             const isAdmin = currentUser && currentUser.role === 'admin';
             
+            // إظهار عناصر الأدمن فقط وإخفاؤها تماماً عن الزائر
             const adminElements = document.querySelectorAll('.admin-only');
             adminElements.forEach(el => {
-                if(isAdmin) {
-                    el.style.display = '';
-                } else {
-                    el.style.display = 'none';
-                }
+                el.style.display = isAdmin ? '' : 'none';
             });
+
+            // توجيه الزائر تلقائياً إلى تبويب إضافة كتاب جديد فقط
+            if (!isAdmin) {
+                switchTab('formTab');
+            }
         }
 
         function logoutSystem() {
@@ -514,17 +517,27 @@
         }
 
         function switchTab(tabId) {
+            // حظر الزائر برمجياً من فتح أي تبويب غير تبويب إضافة كتاب جديد
+            if (currentUser && currentUser.role !== 'admin' && tabId !== 'formTab') {
+                alert('عذراً، هذه الصفحة مخصصة لمدير النظام فقط.');
+                return;
+            }
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
             document.querySelectorAll('.tab-btn').forEach(el => {
                 if(!el.classList.contains('btn-logout')) el.classList.remove('active');
             });
-            document.getElementById(tabId).classList.add('active-tab');
-            
-            if(tabId === 'archiveTab') loadMails();
-            if(tabId === 'appointmentsTab') loadAppointments();
+
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) {
+                targetTab.classList.add('active-tab');
+            }
+
+            if (tabId === 'archiveTab' && currentUser.role === 'admin') loadMails();
+            if (tabId === 'appointmentsTab' && currentUser.role === 'admin') loadAppointments();
         }
 
-        // ================= حفظ المعاملة بالأرشيف =================
+        // ================= إضافة وتوثيق كتاب بريد جديد (متاح للجميع) =================
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -578,7 +591,11 @@
 
                 alert('تم حفظ وتوثيق المعاملة بنجاح باسم المسؤول: ' + currentUser.username);
                 document.getElementById('mailForm').reset();
-                switchTab('archiveTab');
+
+                // بالنسبة للأدمن ينتقل للأرشيف، وللضيف تبقى في نفس الصفحة
+                if (currentUser.role === 'admin') {
+                    switchTab('archiveTab');
+                }
             } catch (error) {
                 console.error("خطأ أثناء الحفظ:", error);
                 alert('حدث خطأ أثناء الحفظ: ' + (error.message || error));
@@ -588,7 +605,7 @@
             }
         });
 
-        // ================= إضافة موعد جديد للمدير =================
+        // ================= إضافة موعد جديد للمدير (خاص بالمدير) =================
         document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if(currentUser.role !== 'admin') {
@@ -619,7 +636,7 @@
 
                 if(error) throw error;
 
-                alert('تمت جدولة الموعد بنجاح وتجهيز التنبيه الآلي وتيليجرام.');
+                alert('تمت جدولة الموعد بنجاح وتفعيل التنبيه التلقائي.');
                 document.getElementById('appointmentForm').reset();
                 document.getElementById('apt_location').value = 'مكتب مدير الكلية';
                 loadAppointments();
@@ -631,8 +648,8 @@
             }
         });
 
-        // جلب جدول المواعيد
         async function loadAppointments() {
+            if (currentUser.role !== 'admin') return;
             const tbody = document.getElementById('appointmentsTableBody');
             tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري جلب جدول المواعيد...</td></tr>`;
 
@@ -656,11 +673,9 @@
         function renderAppointmentsTable(appointments) {
             const tbody = document.getElementById('appointmentsTableBody');
             tbody.innerHTML = '';
-            
-            const isAdmin = currentUser && currentUser.role === 'admin';
 
             if(appointments.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading-row">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
                 return;
             }
 
@@ -668,7 +683,6 @@
                 const duration = (apt && 'apt_duration' in apt && apt.apt_duration) ? apt.apt_duration : 'ساعة كاملة';
                 const phone = (apt && 'guest_phone' in apt && apt.guest_phone) ? apt.guest_phone : 'غير مدخل';
 
-                // إعداد نص الرسالة المباشرة لإرسالها عبر تيليجرام
                 const tgText = encodeURIComponent(
                     `📌 *تنبيه بموعد رسمي - كلية الشؤون الفنية والإدارية*\n\n` +
                     `🗓 *التاريخ:* ${apt.apt_date}\n` +
@@ -695,7 +709,7 @@
                     <td>
                         <a href="${tgShareUrl}" target="_blank" class="btn-telegram">✈️ إرسال للتلغرام</a>
                     </td>
-                    ${isAdmin ? `<td><button class="btn-delete" onclick="deleteAppointment(${apt.id})">🗑️ حذف</button></td>` : ''}
+                    <td><button class="btn-delete" onclick="deleteAppointment(${apt.id})">🗑️ حذف</button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -713,8 +727,8 @@
             }
         }
 
-        // جلب الأرشيف
         async function loadMails() {
+            if (currentUser.role !== 'admin') return;
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري مزامنة بيانات الأرشيف...</td></tr>`;
 
@@ -764,12 +778,8 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
-            const isAdmin = currentUser && currentUser.role === 'admin';
-            const thActionHeader = document.getElementById('thActionHeader');
-            if(thActionHeader) thActionHeader.style.display = isAdmin ? '' : 'none';
-
             if(mails.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملة مطابقة لخيارات البحث.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading-row">لا توجد معاملة مطابقة لخيارات البحث.</td></tr>`;
                 return;
             }
 
@@ -794,7 +804,7 @@
                     <td>
                         ${mail.pdf_url ? `<a href="${mail.pdf_url}" target="_blank" class="btn-pdf">📄 عرض PDF</a>` : '<span style="color:#94a3b8; font-size:11px;">لا يوجد</span>'}
                     </td>
-                    ${isAdmin ? `<td><button class="btn-delete" onclick="deleteMail(${mail.id})">حذف</button></td>` : ''}
+                    <td><button class="btn-delete" onclick="deleteMail(${mail.id})">حذف</button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -812,9 +822,8 @@
             }
         }
 
-        // فحص المواعيد والتنبيه الآلي قبل الموعد بساعة (60 دقيقة)
         function checkUpcomingAppointments() {
-            if(!globalAppointmentsCache || globalAppointmentsCache.length === 0) return;
+            if(currentUser.role !== 'admin' || !globalAppointmentsCache || globalAppointmentsCache.length === 0) return;
 
             const now = new Date();
             const todayStr = now.toISOString().split('T')[0];
@@ -828,7 +837,6 @@
                     const diffMs = aptTimeObj - now;
                     const diffMinutes = Math.floor(diffMs / 60000);
 
-                    // إطلاق التنبيه إذا كان الموعد متبقي عليه 60 دقيقة أو أقل ولم يتم إطلاق التنبيه بعد
                     if(diffMinutes >= -10 && diffMinutes <= 60 && !apt.alerted) {
                         apt.alerted = true;
                         let timeText = diffMinutes > 0 ? `يبدأ خلال ${diffMinutes} دقيقة` : `الموعد حان أو بدأ منذ قليل`;
