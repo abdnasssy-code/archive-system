@@ -9,21 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ================= التنسيقات العامة والتباين العالي ================= */
-        * {
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f1f5f9; color: #0f172a; margin: 0; padding: 0; direction: rtl; }
 
-        body {
-            background-color: #f1f5f9;
-            color: #0f172a;
-            margin: 0;
-            padding: 0;
-            direction: rtl;
-        }
-
-        /* نافذة تسجيل الدخول */
         .login-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 9999;
@@ -51,10 +39,8 @@
         }
         .btn-submit-custom:hover { background: #1e40af; }
 
-        /* الهيدر والقوائم */
         .app-header { background: #1e293b; color: #ffffff; padding: 15px 20px; }
         .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        .logo-area { display: flex; align-items: center; gap: 12px; }
         .header-titles h2 { margin: 0; font-size: 18px; color: #ffffff; }
         .header-titles p { margin: 2px 0 0 0; color: #93c5fd; font-size: 12px; }
         .ministry-tag { font-size: 11px; color: #f59e0b; font-weight: bold; }
@@ -67,7 +53,6 @@
         .tab-btn.active { background: #2563eb; color: #ffffff; }
         .btn-logout { background: #dc2626 !important; }
 
-        /* المحتوى واللوحات */
         .main-container { max-width: 1200px; margin: 25px auto; padding: 0 15px; }
         .tab-content { display: none; }
         .tab-content.active-tab { display: block; }
@@ -84,7 +69,6 @@
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; }
         .full-width { grid-column: 1 / -1; }
 
-        /* التنسيق الاحترافي لجدول المواعيد المعروض */
         .archive-panel { background: #ffffff; border-radius: 10px; border: 1px solid #cbd5e1; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .table-container { overflow-x: auto; margin-top: 10px; }
         
@@ -94,18 +78,22 @@
         tr:nth-child(even) { background-color: #f8fafc; }
         tr:hover { background-color: #f1f5f9; }
 
-        /* الشارات والتنبيهات الناصعة */
         .badge-date { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-weight: bold; display: inline-block; }
         .badge-time { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-weight: bold; display: inline-block; }
         .badge-duration { background: #e2e8f0; color: #1e293b; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
         
-        .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 11px; }
         .btn-delete:hover { background: #dc2626; color: white; }
+        
+        .btn-wa { background: #16a34a; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 3px; }
+        .btn-wa:hover { background: #15803d; }
+        
+        .btn-tg { background: #0284c7; color: white; padding: 5px 10px; border-radius: 5px; text-decoration: none; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 3px; }
+        .btn-tg:hover { background: #0369a1; }
 
-        /* نافذة التنبيه الهامة */
         .appointment-alert-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; z-index: 10000;
+            background: rgba(15, 23, 42, 0.85); display: flex; justify-content: center; align-items: center; z-index: 10000;
         }
         .appointment-alert-card {
             background: #ffffff; padding: 30px; border-radius: 12px; width: 90%; max-width: 450px;
@@ -115,7 +103,7 @@
 </head>
 <body>
 
-    <!-- ================= شاشة تسجيل الدخول ================= -->
+    <!-- شاشة تسجيل الدخول -->
     <div id="loginOverlay" class="login-overlay">
         <div class="login-card">
             <div class="login-header">
@@ -137,17 +125,17 @@
         </div>
     </div>
 
-    <!-- ================= تنبيه المواعيد ================= -->
+    <!-- نافذة التنبيه الاستباقي (قبل ساعة أو في حينه) -->
     <div id="appointmentAlertModal" class="appointment-alert-overlay" style="display: none;">
         <div class="appointment-alert-card">
             <div style="font-size: 40px; margin-bottom: 10px;">⏰</div>
-            <h3 style="color: #dc2626; margin: 0 0 10px 0;">تنبيه بموعد قريب!</h3>
-            <p id="alertMessageText" style="color: #1e293b; font-size: 15px; font-weight: bold;"></p>
-            <button onclick="closeAppointmentAlert()" class="btn-submit-custom" style="margin-top: 15px; background: #2563eb;">إغلاق التنبيه</button>
+            <h3 style="color: #dc2626; margin: 0 0 10px 0;">تنبيه موعد وشيك (قبل ساعة)!</h3>
+            <p id="alertMessageText" style="color: #1e293b; font-size: 15px; font-weight: bold; line-height: 1.6;"></p>
+            <button onclick="closeAppointmentAlert()" class="btn-submit-custom" style="margin-top: 15px; background: #2563eb;">إقرار العلم والمتابعة</button>
         </div>
     </div>
 
-    <!-- ================= التطبيق الأساسي ================= -->
+    <!-- التطبيق الأساسي -->
     <div id="appContainer" style="display: none;">
         <header class="app-header">
             <div class="header-container">
@@ -161,29 +149,26 @@
                 
                 <div class="nav-tabs">
                     <button class="tab-btn active" onclick="switchTab('appointmentsTab')">📅 مواعيد المدير</button>
-                    <button class="tab-btn" onclick="switchTab('formTab')">تسجيل كتاب جديد</button>
                     <button class="tab-btn btn-logout" onclick="logoutSystem()">تسجيل خروج</button>
                 </div>
             </div>
         </header>
 
         <main class="main-container">
-
-            <!-- تبويب مواعيد وجدولة المدير (الواجهة الرئيسية الجديدة) -->
             <div id="appointmentsTab" class="tab-content active-tab">
                 
-                <!-- نموذج إضافة موعد (يظهر حصرياً للـ Admin) -->
+                <!-- نموذج إضافة موعد (Admin فقط) -->
                 <div id="adminAppointmentBox" class="form-card-container" style="display: none;">
                     <div class="panel-header-custom" style="background: #1e3a8a;">
-                        <h2>📌 إضافة موعد جديد لجدول المدير (خاص بـ Admin)</h2>
-                        <p>تحديد موعد جديد مع ضبط الوقت والمدة بدقة</p>
+                        <h2>📌 إضافة موعد جديد وجدولة تنبيهات المدير</h2>
+                        <p>تحديد الموعد مع بيانات تواصل الضيف لتسهيل إرسال إشعارات الواتساب والتليجرام</p>
                     </div>
                     <div class="panel-body-custom">
                         <form id="appointmentForm">
                             <div class="form-grid">
                                 <div class="input-group full-width">
                                     <label for="apt_title">عنوان الموعد أو موضوع الاجتماع *</label>
-                                    <input type="text" id="apt_title" required placeholder="مثال: اجتماع تنسيقي مع رؤساء الأقسام">
+                                    <input type="text" id="apt_title" required placeholder="مثال: اجتماع تنسيقي مع وفد الأركان">
                                 </div>
                                 <div class="input-group">
                                     <label for="apt_date">تاريخ الموعد *</label>
@@ -204,8 +189,12 @@
                                     </select>
                                 </div>
                                 <div class="input-group">
-                                    <label for="apt_with">الطرف المقابل / الزائر *</label>
-                                    <input type="text" id="apt_with" required placeholder="مثال: رئيس قسم التدريب">
+                                    <label for="apt_with">الطرف المقابل / اسم الضيف *</label>
+                                    <input type="text" id="apt_with" required placeholder="مثال: العميد الفلاني">
+                                </div>
+                                <div class="input-group">
+                                    <label for="apt_phone">رقم هاتف الضيف (لإرسال إشعار واتساب)</label>
+                                    <input type="text" id="apt_phone" placeholder="مثال: 009639xxxxxxxx">
                                 </div>
                                 <div class="input-group">
                                     <label for="apt_location">مكان الموعد</label>
@@ -213,20 +202,20 @@
                                 </div>
                                 <div class="input-group full-width">
                                     <label for="apt_notes">ملاحظات أو جدول الأعمال</label>
-                                    <textarea id="apt_notes" rows="2" placeholder="تفاصيل إضافية عن الاجتماع..."></textarea>
+                                    <textarea id="apt_notes" rows="2" placeholder="تفاصيل إضافية..."></textarea>
                                 </div>
                                 <div class="full-width">
-                                    <button type="submit" class="btn-submit-custom" id="aptSubmitBtn">حفظ وتثبيت الموعد</button>
+                                    <button type="submit" class="btn-submit-custom" id="aptSubmitBtn">حفظ وتثبيت الموعد في الجدول</button>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- جدول العرض الواضح جداً للمواعيد -->
+                <!-- جدول العرض -->
                 <div class="archive-panel">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="margin: 0; color: #1e293b; font-size: 18px;">🗓️ جدول مواعيد السيد المدير</h3>
+                        <h3 style="margin: 0; color: #1e293b; font-size: 18px;">🗓️ جدول مواعيد السيد المدير (مع التنبيهات الفورية)</h3>
                         <button onclick="loadAppointments()" style="padding: 8px 14px; background: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🔄 تحديث البيانات</button>
                     </div>
                     <div class="table-container">
@@ -236,36 +225,23 @@
                                     <th>التاريخ والوقت</th>
                                     <th>المدة</th>
                                     <th>عنوان الموعد</th>
-                                    <th>الطرف المقابل</th>
+                                    <th>الطرف المقابل والهاتف</th>
                                     <th>المكان والملاحظات</th>
+                                    <th>إرسال إشعارات تأكيد</th>
                                     <th id="thAptAction" style="display:none;">إدارة</th>
                                 </tr>
                             </thead>
                             <tbody id="appointmentsTableBody">
-                                <tr><td colspan="6" style="text-align: center; font-weight: bold; padding: 20px;">جاري جلب جدول المواعيد...</td></tr>
+                                <tr><td colspan="7" style="text-align: center; font-weight: bold; padding: 20px;">جاري جلب جدول المواعيد...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-
             </div>
-
-            <!-- تبويب إدخال بريد جديد -->
-            <div id="formTab" class="tab-content">
-                <div class="form-card-container">
-                    <div class="panel-header-custom">
-                        <h2>تسجيل معاملة أو بريد رسمي</h2>
-                    </div>
-                    <div class="panel-body-custom">
-                        <p style="color: #64748b; font-size: 14px;">يمكنك إضافة المعاملات والكتب الرسمية من هنا بسهولة.</p>
-                    </div>
-                </div>
-            </div>
-
         </main>
     </div>
 
-    <!-- ================= البرمجة والربط بـ Supabase ================= -->
+    <!-- السكربت والبرمجة -->
     <script>
         const SUPABASE_URL = 'https://rzlpuhabircpnmmwbbzo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bHB1aGFiaXJjcG5tbXdiYnpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjQ0OTgsImV4cCI6MjEwNjAwMDQ5OH0.DcP18cHurdmYaLdAK-M_k5i-X4Sq-8lz0wWAr9i3K7U';
@@ -274,8 +250,9 @@
         const SYSTEM_SHARED_PASSWORD = '123456';
 
         let currentUser = null;
+        let globalAppointmentsCache = [];
+        let alertInterval = null;
 
-        // تسجيل الدخول
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('loginUser').value.trim();
@@ -295,7 +272,6 @@
             document.getElementById('appContainer').style.display = 'block';
             document.getElementById('userInfoDisplay').innerText = 'المستخدم: ' + username + (currentUser.role === 'admin' ? ' (صلاحيات مدير)' : ' (مستخدم عادي)');
 
-            // التحكم بإظهار لوحة الإضافة للـ Admin فقط
             if(currentUser.role === 'admin') {
                 document.getElementById('adminAppointmentBox').style.display = 'block';
             } else {
@@ -303,22 +279,19 @@
             }
 
             loadAppointments();
+            if(alertInterval) clearInterval(alertInterval);
+            alertInterval = setInterval(checkUpcomingAppointments, 30000); // فحص دوري كل 30 ثانية
         });
 
-        function logoutSystem() {
-            location.reload();
-        }
-
+        function logoutSystem() { location.reload(); }
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
             document.querySelectorAll('.tab-btn').forEach(el => { if(!el.classList.contains('btn-logout')) el.classList.remove('active'); });
             document.getElementById(tabId).classList.add('active-tab');
         }
 
-        // حفظ الموعد في قاعدة البيانات
         document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             if(!currentUser || currentUser.role !== 'admin') {
                 alert('عذراً، فقط الـ Admin يستطيع إضافة موعد.');
                 return;
@@ -334,35 +307,30 @@
                 apt_time: document.getElementById('apt_time').value,
                 apt_duration: document.getElementById('apt_duration').value,
                 apt_with: document.getElementById('apt_with').value,
+                apt_phone: document.getElementById('apt_phone').value || '',
                 apt_location: document.getElementById('apt_location').value,
                 apt_notes: document.getElementById('apt_notes').value,
                 created_by: currentUser.username
             };
 
             try {
-                const { error } = await supabaseClient
-                    .from('manager_appointments')
-                    .insert([newApt]);
-
+                const { error } = await supabaseClient.from('manager_appointments').insert([newApt]);
                 if(error) throw error;
-
-                alert('تمت إضافة الموعد بنجاح!');
+                alert('تمت إضافة الموعد وتفعيل نظام التنبيهات المسبقة بنجاح!');
                 document.getElementById('appointmentForm').reset();
                 document.getElementById('apt_location').value = 'مكتب مدير الكلية';
                 loadAppointments();
             } catch (err) {
-                console.error(err);
-                alert('فشل حفظ الموعد! يرجى التأكد من تشغيل كود SQL المطلوب في Supabase.\nالخطأ: ' + err.message);
+                alert('فشل حفظ الموعد! يرجى التأكد من تشغيل كود الـ SQL في Supabase (تأكد من إضافة حقل apt_phone إذا لزم).\nالخطأ: ' + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'حفظ وتثبيت الموعد';
+                btn.innerText = 'حفظ وتثبيت الموعد في الجدول';
             }
         });
 
-        // جلب وقراءة المواعيد من قاعدة البيانات
         async function loadAppointments() {
             const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 15px;">جاري تحميل الجدول...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 15px;">جاري تحميل الجدول...</td></tr>`;
 
             try {
                 const { data, error } = await supabaseClient
@@ -372,14 +340,13 @@
                     .order('apt_time', { ascending: true });
 
                 if(error) throw error;
-
-                renderAppointmentsTable(data || []);
+                globalAppointmentsCache = data || [];
+                renderAppointmentsTable(globalAppointmentsCache);
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #dc2626; font-weight: bold;">لم يتم العثور على جدول المواعيد أو حدث خطأ بالاتصال.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #dc2626; font-weight: bold;">تعذر جلب البيانات. تأكد من إعدادات قاعدة البيانات.</td></tr>`;
             }
         }
 
-        // عرض المواعيد بوضوح عالي جداً
         function renderAppointmentsTable(appointments) {
             const tbody = document.getElementById('appointmentsTableBody');
             tbody.innerHTML = '';
@@ -388,7 +355,7 @@
             document.getElementById('thAptAction').style.display = isAdmin ? '' : 'none';
 
             if(appointments.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 6 : 5}" style="text-align: center; padding: 20px; font-weight: bold; color: #64748b;">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" style="text-align: center; padding: 20px; font-weight: bold; color: #64748b;">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
                 return;
             }
 
@@ -396,6 +363,12 @@
                 const tr = document.createElement('tr');
                 let deleteTd = isAdmin ? `<td><button class="btn-delete" onclick="deleteAppointment(${apt.id})">حذف 🗑️</button></td>` : '';
                 
+                // تجهيز رسائل واتساب وتليجرام جاهزة للإرسال بضغطة زر
+                const msgText = encodeURIComponent(`تنبيه رسمي - موعد مع السيد المدير:\n📌 الموضوع: ${apt.apt_title}\n📅 التاريخ: ${apt.apt_date}\n⏰ الوقت: ${apt.apt_time}\n⏳ المدة: ${apt.apt_duration}\n📍 المكان: ${apt.apt_location || 'مكتب المدير'}`);
+                
+                const waLink = apt.apt_phone ? `https://wa.me/${apt.apt_phone.replace(/[^0-9]/g, '')}?text=${msgText}` : `https://wa.me/?text=${msgText}`;
+                const tgLink = `https://t.me/share/url?url=&text=${msgText}`;
+
                 tr.innerHTML = `
                     <td>
                         <span class="badge-date">📅 ${apt.apt_date}</span><br>
@@ -403,10 +376,17 @@
                     </td>
                     <td><span class="badge-duration">⏳ ${apt.apt_duration || 'ساعة'}</span></td>
                     <td><strong style="color: #1e3a8a; font-size: 14px;">${apt.apt_title}</strong></td>
-                    <td><strong style="color: #0f172a;">👤 ${apt.apt_with}</strong></td>
+                    <td>
+                        <strong style="color: #0f172a;">👤 ${apt.apt_with}</strong><br>
+                        <span style="font-size: 11px; color: #64748b;">📞 ${apt.apt_phone || 'بدون رقم'}</span>
+                    </td>
                     <td>
                         <div><b>المكان:</b> ${apt.apt_location || 'مكتب المدير'}</div>
                         <div style="font-size: 12px; color: #475569;"><b>ملاحظات:</b> ${apt.apt_notes || 'لا يوجد'}</div>
+                    </td>
+                    <td>
+                        <a href="${waLink}" target="_blank" class="btn-wa">💬 واتساب الضيف</a><br>
+                        <a href="${tgLink}" target="_blank" class="btn-tg">✈️ تليجرام المدير</a>
                     </td>
                     ${deleteTd}
                 `;
@@ -414,7 +394,49 @@
             });
         }
 
-        // حذف الموعد للـ Admin
+        // فحص تلقائي للتنبيه قبل ساعة تماماً (60 دقيقة)
+        function checkUpcomingAppointments() {
+            if(!globalAppointmentsCache || globalAppointmentsCache.length === 0) return;
+
+            const now = new Date();
+            const currentDateStr = now.toISOString().slice(0, 10);
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const currentTimeMinutes = currentHours * 60 + currentMinutes;
+
+            globalAppointmentsCache.forEach(apt => {
+                if(apt.apt_date === currentDateStr) {
+                    const aptTimeMinutes = timeToMinutes(apt.apt_time);
+                    const diffMinutes = aptTimeMinutes - currentTimeMinutes;
+
+                    // تنبيه استباقي دقيق عندما يفصلنا عن الموعد حوالي 60 دقيقة (أو أقل بـ 5 دقائق)
+                    if(diffMinutes >= 55 && diffMinutes <= 62 && !apt.alertedBeforeHour) {
+                        apt.alertedBeforeHour = true;
+                        triggerAlertModal(`تنبيه استباقي: موعد "${apt.apt_title}" مع (${apt.apt_with}) سيرة بعد ساعة بالضبط (${apt.apt_time}) في ${apt.apt_location || 'مكتب المدير'}.`);
+                    }
+                }
+            });
+        }
+
+        function timeToMinutes(timeStr) {
+            if(!timeStr) return 0;
+            const parts = timeStr.split(':');
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+
+        function triggerAlertModal(msg) {
+            document.getElementById('alertMessageText').innerText = msg;
+            document.getElementById('appointmentAlertModal').style.display = 'flex';
+            try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.play();
+            } catch(e) {}
+        }
+
+        function closeAppointmentAlert() {
+            document.getElementById('appointmentAlertModal').style.display = 'none';
+        }
+
         async function deleteAppointment(id) {
             if(!confirm('هل أنت متأكد من حذف هذا الموعد؟')) return;
             try {
@@ -424,10 +446,6 @@
             } catch(e) {
                 alert('فشل الحذف: ' + e.message);
             }
-        }
-
-        function closeAppointmentAlert() {
-            document.getElementById('appointmentAlertModal').style.display = 'none';
         }
     </script>
 </body>
