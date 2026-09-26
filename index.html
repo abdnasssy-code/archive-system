@@ -524,7 +524,7 @@
                 renderAppointmentsTable(globalAppointmentsCache);
             } catch (error) {
                 console.error("خطأ جلب المواعيد:", error);
-                tbody.innerHTML = `<tr><td colspan="6" class="loading-row" style="color:#dc2626;">تعذر جلب المواعيد (تأكد من إنشاء جدول المواعيد).</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="loading-row" style="color:#dc2626;">تعذر جلب المواعيد.</td></tr>`;
             }
         }
 
@@ -562,28 +562,26 @@
             }
         }
 
-        // فحص المواعيد للتنبيه الفوري في حال اقتراب الموعد (أقل من 30 دقيقة أو خلال نفس الدقيقة)
+        // فحص المواعيد للتنبيه الفوري المرن
         function checkUpcomingAppointments() {
             if(!globalAppointmentsCache || globalAppointmentsCache.length === 0) return;
 
             const now = new Date();
             const currentDateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
-            const currentHours = String(now.getHours()).padStart(2, '0');
-            const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-            const currentTimeStr = `${currentHours}:${currentMinutes}`;
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const currentTimeMinutes = currentHours * 60 + currentMinutes;
 
             globalAppointmentsCache.forEach(apt => {
                 if(apt.apt_date === currentDateStr) {
-                    // مقارنة الأوقات (إذا كان موعد الاجتماع مطابق للوقت الحالي أو خلال الـ 15 دقيقة القادمة)
                     const aptTimeMinutes = timeToMinutes(apt.apt_time);
-                    const currentTimeMinutes = timeToMinutes(currentTimeStr);
-                    
                     const diffMinutes = aptTimeMinutes - currentTimeMinutes;
 
-                    // إذا كان الموعد في طريقه للحدوث خلال (0 إلى 15 دقيقة) ولم يتم تنبيهه في الجلسة الحالية
-                    if(diffMinutes >= 0 && diffMinutes <= 15 && !apt.alerted) {
-                        apt.alerted = true; // منع تكرار التنبيه لنفس الموعد المتكرر
-                        triggerAlertModal(`الموعد القادم: "${apt.apt_title}" مع (${apt.apt_with}) يبدأ خلال ${diffMinutes === 0 ? 'لحظات قليلة' : diffMinutes + ' دقيقة'} في ${apt.apt_location || 'مكتب المدير'}.`);
+                    // تنبيه إذا كان الموعد خلال الـ 60 دقيقة القادمة أو مضى عليه أقل من 15 دقيقة
+                    if(diffMinutes >= -15 && diffMinutes <= 60 && !apt.alerted) {
+                        apt.alerted = true; 
+                        let timeText = diffMinutes > 0 ? `يبدأ خلال ${diffMinutes} دقيقة` : `الموعد حان أو بدأ منذ قليل`;
+                        triggerAlertModal(`الموعد: "${apt.apt_title}" مع (${apt.apt_with}) - ${timeText} في ${apt.apt_location || 'مكتب المدير'}.`);
                     }
                 }
             });
@@ -596,10 +594,10 @@
         }
 
         function triggerAlertModal(msg) {
-            document.getElementById('alertMessageTextinnerText').innerText = msg; // تعيين نص التنبيه
+            const msgEl = document.getElementById('alertMessageText');
+            if(msgEl) msgEl.innerText = msg;
             document.getElementById('appointmentAlertModal').style.display = 'flex';
             
-            // تشغيل صوت تنبيه قصير في متصفح الويب (إن توفر)
             try {
                 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                 audio.play();
