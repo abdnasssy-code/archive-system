@@ -6,10 +6,8 @@
     <title>أرشيف كلية الشؤون الفنية والإدارية - وزارة الدفاع</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- مكتبات Firebase السحابية التوافقية -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+    <!-- مكتبة Supabase الرسمية للويب -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -64,7 +62,7 @@
                 <div class="form-card-container">
                     <div class="panel-header-custom">
                         <h2>تسجيل كتاب أو معاملة رسمية جديدة</h2>
-                        <p>أدخل بيانات الكتاب أو البريد الوارد/الصادر وتوثيقه في الأرشيف المركزي السحابي</p>
+                        <p>أدخل بيانات الكتاب أو البريد الوارد/الصادر وتوثيقه في الأرشيف المركزي السحابي (Supabase)</p>
                     </div>
                     <div class="panel-body-custom">
                         <form id="mailForm">
@@ -123,7 +121,7 @@
                                     <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input">
                                 </div>
                                 <div class="full-width">
-                                    <button type="submit" class="btn-submit-custom" id="submitBtn">حفظ وتوثيق المعاملة في الأرشيف السحابي</button>
+                                    <button type="submit" class="btn-submit-custom" id="submitBtn">حفظ وتوثيق المعاملة في أرشيف Supabase</button>
                                 </div>
                             </div>
                         </form>
@@ -166,7 +164,7 @@
 
                 <div class="archive-panel">
                     <div class="panel-header-archive space-between">
-                        <h2>سجل الأرشيف المركزي السحابي</h2>
+                        <h2>سجل الأرشيف المركزي (Supabase)</h2>
                         <div class="table-tools">
                             <input type="text" id="searchInput" class="search-field" placeholder="ابحث برقم الكتاب، الموضوع..." onkeyup="filterTable()">
                             <button class="btn-refresh-custom" onclick="loadMails()">تحديث القائمة</button>
@@ -186,7 +184,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
-                                <tr><td colspan="7" class="loading-row">جاري الاتصال بالسحابة وتحميل البيانات...</td></tr>
+                                <tr><td colspan="7" class="loading-row">جاري الاتصال بـ Supabase وتحميل البيانات...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -230,23 +228,14 @@
         .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 
-    <!-- سكربت الاتصال السحابي وإدارة البيانات -->
+    <!-- سكربت الربط مع Supabase وتشغيل النظام -->
     <script>
-        // إعدادات الاتصال بمشروعك الحقيقي على Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyChF4XwhO1aowa26W5rDAEF-VoeZZjIFfM",
-            authDomain: "mod-archive.firebaseapp.com",
-            projectId: "mod-archive",
-            storageBucket: "mod-archive.firebasestorage.app",
-            messagingSenderId: "885002456026",
-            appId: "1:885002456026:web:918abcbd95902b5fe70ee3",
-            measurementId: "G-6F13SMGYND"
-        };
+        // إعدادات الاتصال بـ Supabase
+        const SUPABASE_URL = 'https://rzlpuhabircpnmmwbbzo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bHB1aGFiaXJjcG5tbXdiYnpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjQ0OTgsImV4cCI6MjEwNjAwMDQ5OH0.DcP18cHurdmYaLdAK-M_k5i-X4Sq-8lz0wWAr9i3K7U';
 
-        // تهيئة Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
+        // تهيئة عميل Supabase
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
         let globalMailsCache = [];
@@ -296,12 +285,12 @@
             }
         }
 
-        // إرسال وتخزين المعاملات وملفات الـ PDF سحابياً
+        // إرسال البيانات ورفع ملف الـ PDF إلى Supabase Storage
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
-            submitBtn.innerText = 'جاري الرفع والحفظ بالسحابة...';
+            submitBtn.innerText = 'جاري الرفع والحفظ في Supabase...';
 
             const fileInput = document.getElementById('pdf_file');
             let pdfUrl = '';
@@ -311,13 +300,25 @@
                 if(fileInput.files && fileInput.files[0]) {
                     const file = fileInput.files[0];
                     pdfName = file.name;
-                    const storageRef = storage.ref(`archive_pdfs/${Date.now()}_${pdfName}`);
-                    const snapshot = await storageRef.put(file);
-                    pdfUrl = await snapshot.ref.getDownloadURL();
+                    const filePath = `archive_pdfs/${Date.now()}_${pdfName}`;
+                    
+                    // رفع الملف إلى حاوية التخزين (Storage Bucket) المسمى archive_pdfs
+                    const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                        .from('archive_pdfs')
+                        .upload(filePath, file);
+
+                    if(uploadError) throw uploadError;
+
+                    // الحصول على الرابط العام للملف المرفوع
+                    const { data: publicUrlData } = supabaseClient.storage
+                        .from('archive_pdfs')
+                        .getPublicUrl(filePath);
+
+                    pdfUrl = publicUrlData.publicUrl;
                 }
 
+                // إدخال بيانات الكتاب إلى جدول military_mails
                 const newMail = {
-                    id: Date.now(),
                     mail_number: document.getElementById('mail_number').value,
                     mail_type: document.getElementById('mail_type').value,
                     reply_to: document.getElementById('reply_to').value,
@@ -328,42 +329,49 @@
                     status: document.getElementById('status').value,
                     summary: document.getElementById('summary').value,
                     pdf_name: pdfName,
-                    pdf_url: pdfUrl,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    pdf_url: pdfUrl
                 };
 
-                await db.collection('military_mails_archive').add(newMail);
+                const { error: dbError } = await supabaseClient
+                    .from('military_mails')
+                    .insert([newMail]);
 
-                alert('تم حفظ وتوثيق المعاملة سحابياً بنجاح!');
+                if(dbError) throw dbError;
+
+                alert('تم حفظ وتوثيق المعاملة بنجاح في Supabase!');
                 document.getElementById('mailForm').reset();
                 switchTab('archiveTab');
             } catch (error) {
-                console.error("خطأ أثناء الحفظ السحابي:", error);
-                alert('حدث خطأ أثناء الحفظ، تأكد من اتصال الإنترنت وصلاحيات القواعد (Rules) في فايربيس.');
+                console.error("خطأ أثناء الحفظ:", error);
+                alert('حدث خطأ أثناء الحفظ: ' + (error.message || error));
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف السحابي';
+                submitBtn.innerText = 'حفظ وتوثيق المعاملة في أرشيف Supabase';
             }
         });
 
-        // جلب المعاملات من قاعدة البيانات
-        function loadMails() {
+        // جلب المعاملات من Supabase
+        async function loadMails() {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري مزامنة البيانات من السحابة...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري مزامنة البيانات من قاعدة بيانات Supabase...</td></tr>`;
 
-            db.collection('military_mails_archive').orderBy('createdAt', 'desc').get().then((querySnapshot) => {
-                globalMailsCache = [];
-                querySnapshot.forEach((doc) => {
-                    globalMailsCache.push({ docId: doc.id, ...doc.data() });
-                });
+            try {
+                const { data, error } = await supabaseClient
+                    .from('military_mails')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if(error) throw error;
+
+                globalMailsCache = data || [];
                 renderTableData(globalMailsCache);
-            }).catch((error) => {
+            } catch (error) {
                 console.error("خطأ في الجلب:", error);
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">فشل الاتصال بقاعدة البيانات. تأكد من إعدادات القواعد في فايربيس.</td></tr>`;
-            });
+                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">فشل الاتصال بقاعدة البيانات. تأكد من إنشاء الجدول المطلوب (military_mails).</td></tr>`;
+            }
         }
 
-        // عرض البيانات
+        // عرض البيانات في الجدول
         function renderTableData(mails) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
@@ -375,7 +383,7 @@
             actionHeader.style.display = isAdmin ? '' : 'none';
 
             if(mails.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملات مسجلة سحابياً حتى الآن.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}" class="loading-row">لا توجد معاملات مسجلة حتى الآن.</td></tr>`;
                 document.getElementById('totalCount').innerText = 0;
                 document.getElementById('incomingCount').innerText = 0;
                 document.getElementById('outgoingCount').innerText = 0;
@@ -398,7 +406,7 @@
                 
                 let deleteTd = '';
                 if(isAdmin) {
-                    deleteTd = `<td><button class="btn-delete" onclick="deleteMail('${mail.docId}', '${mail.pdf_url || ''}')">🗑️ حذف</button></td>`;
+                    deleteTd = `<td><button class="btn-delete" onclick="deleteMail(${mail.id}, '${mail.pdf_url || ''}')">🗑️ حذف</button></td>`;
                 }
 
                 tr.innerHTML = `
@@ -419,26 +427,28 @@
             document.getElementById('completedCount').innerText = completed;
         }
 
-        // حذف معاملة
-        async function deleteMail(docId, pdfUrl) {
-            if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً من الأرشيف السحابي؟')) return;
+        // حذف معاملة من قاعدة البيانات
+        async function deleteMail(id, pdfUrl) {
+            if(!confirm('هل أنت متأكد من حذف هذه المعاملة نهائياً؟')) return;
             
             try {
-                if(pdfUrl) {
-                    const desertRef = storage.refFromURL(pdfUrl);
-                    await desertRef.delete().catch(err => console.log("الملف غير موجود في التخزين"));
-                }
-                await db.collection('military_mails_archive').doc(docId).delete();
+                // حذف السجل من جدول Supabase
+                const { error } = await supabaseClient
+                    .from('military_mails')
+                    .delete()
+                    .eq('id', id);
+
+                if(error) throw error;
                 
                 alert('تم حذف المعاملة بنجاح.');
                 loadMails();
             } catch (error) {
                 console.error("خطأ أثناء الحذف:", error);
-                alert('فشل عملية الحذف.');
+                alert('فشل عملية الحذف: ' + error.message);
             }
         }
 
-        // البحث الحي
+        // البحث الحي في الجدول
         function filterTable() {
             const input = document.getElementById('searchInput').value.toLowerCase();
             const filtered = globalMailsCache.filter(mail => {
