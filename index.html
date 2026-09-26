@@ -101,7 +101,7 @@
         
         .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-delete:hover { background: #dc2626; color: white; }
-        
+
         .btn-tg { background: #0284c7; color: white; padding: 6px 12px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: bold; display: inline-block; }
         .btn-tg:hover { background: #0369a1; }
 
@@ -172,14 +172,14 @@
 
         <main class="main-container">
 
-            <!-- تبويب مواعيد وجدولة المدير -->
+            <!-- تبويب مواعيد وجدولة المدير (الواجهة الرئيسية الجديدة) -->
             <div id="appointmentsTab" class="tab-content active-tab">
                 
                 <!-- نموذج إضافة موعد (يظهر حصرياً للـ Admin) -->
                 <div id="adminAppointmentBox" class="form-card-container" style="display: none;">
                     <div class="panel-header-custom" style="background: #1e3a8a;">
-                        <h2>📌 إضافة موعد جديد وجدولة الإشعارات (خاص بـ Admin)</h2>
-                        <p>تحديد موعد جديد مع ضبط الوقت، المدة، وأرقام هواتف المتابعة وتنبيهات تيليجرام</p>
+                        <h2>📌 إضافة موعد جديد لجدول المدير (خاص بـ Admin)</h2>
+                        <p>تحديد موعد جديد مع ضبط الوقت والمدة وأرقام الهواتف للتنبيهات</p>
                     </div>
                     <div class="panel-body-custom">
                         <form id="appointmentForm">
@@ -212,11 +212,11 @@
                                 </div>
                                 <div class="input-group">
                                     <label for="apt_guest_phone">رقم هاتف الضيف</label>
-                                    <input type="text" id="apt_guest_phone" placeholder="مثال: 009639xxxxxxxx">
+                                    <input type="text" id="apt_guest_phone" placeholder="مثال: +9639xxxxxxxx">
                                 </div>
                                 <div class="input-group">
                                     <label for="apt_manager_phone">رقم هاتف مدير الكلية</label>
-                                    <input type="text" id="apt_manager_phone" placeholder="مثال: 009639xxxxxxxx">
+                                    <input type="text" id="apt_manager_phone" placeholder="مثال: +9639xxxxxxxx">
                                 </div>
                                 <div class="input-group">
                                     <label for="apt_location">مكان الموعد</label>
@@ -227,7 +227,7 @@
                                     <textarea id="apt_notes" rows="2" placeholder="تفاصيل إضافية عن الاجتماع..."></textarea>
                                 </div>
                                 <div class="full-width">
-                                    <button type="submit" class="btn-submit-custom" id="aptSubmitBtn">حفظ وتثبيت الموعد وإرسال الإشعار</button>
+                                    <button type="submit" class="btn-submit-custom" id="aptSubmitBtn">حفظ وتثبيت الموعد</button>
                                 </div>
                             </div>
                         </form>
@@ -262,7 +262,7 @@
 
             </div>
 
-            <!-- تبويب إدخال كتاب أو معاملة -->
+            <!-- تبويب إدخال بريد جديد -->
             <div id="formTab" class="tab-content">
                 <div class="form-card-container">
                     <div class="panel-header-custom">
@@ -294,7 +294,7 @@
             const password = document.getElementById('loginPass').value.trim();
 
             if(password !== SYSTEM_SHARED_PASSWORD) {
-                document.getElementById('loginError').innerText = 'كلمة المرور غير صحيحة. يرجى إعادة المحاولة.';
+                document.getElementById('loginError').innerText = 'كلمة المرور خاطئة! يرجى المحاولة مرة أخرى.';
                 return;
             }
 
@@ -338,7 +338,7 @@
 
             const btn = document.getElementById('aptSubmitBtn');
             btn.disabled = true;
-            btn.innerText = 'جاري الحفظ وإرسال الإشعار...';
+            btn.innerText = 'جاري الحفظ...';
 
             const newApt = {
                 apt_title: document.getElementById('apt_title').value,
@@ -360,16 +360,16 @@
 
                 if(error) throw error;
 
-                alert('تمت إضافة الموعد وتجهيز روابط الإشعارات بنجاح!');
+                alert('تمت إضافة الموعد بنجاح!');
                 document.getElementById('appointmentForm').reset();
                 document.getElementById('apt_location').value = 'مكتب مدير الكلية';
                 loadAppointments();
             } catch (err) {
                 console.error(err);
-                alert('فشل حفظ الموعد! يرجى التأكد من تشغيل حقول الهواتف الجديدة في قاعدة بيانات Supabase.\nالخطأ: ' + err.message);
+                alert('فشل حفظ الموعد! يرجى التأكد من تشغيل كود SQL المطلوب في Supabase (بما فيها أعمدة الهواتف الجديدة).\nالخطأ: ' + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'حفظ وتثبيت الموعد وإرسال الإشعار';
+                btn.innerText = 'حفظ وتثبيت الموعد';
             }
         });
 
@@ -389,11 +389,11 @@
 
                 renderAppointmentsTable(data || []);
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #dc2626; font-weight: bold;">لم يتم العثور على جدول المواعيد أو حدث خطأ بالاتصال. تأكد من توفر الأعمدة المطلوبة في قاعدة البيانات.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #dc2626; font-weight: bold;">لم يتم العثور على جدول المواعيد أو حدث خطأ بالاتصال.</td></tr>`;
             }
         }
 
-        // عرض المواعيد بوضوح مع أزرار إرسال إشعار تيليجرام
+        // عرض المواعيد بوضوح عالي جداً مع زر التيليجرام والهواتف
         function renderAppointmentsTable(appointments) {
             const tbody = document.getElementById('appointmentsTableBody');
             tbody.innerHTML = '';
@@ -410,18 +410,17 @@
                 const tr = document.createElement('tr');
                 let deleteTd = isAdmin ? `<td><button class="btn-delete" onclick="deleteAppointment(${apt.id})">حذف 🗑️</button></td>` : '';
                 
-                // نص الرسالة الجاهز للإرسال عبر تيليجرام
-                const telegramMessage = encodeURIComponent(
+                // صياغة نص رسالة التيليجرام جاهزة للإرسال
+                const telegramMsg = encodeURIComponent(
                     `📌 إشعار موعد رسمي - كلية الشؤون الفنية والإدارية\n\n` +
                     `🔹 الموضوع: ${apt.apt_title}\n` +
                     `📅 التاريخ: ${apt.apt_date}\n` +
                     `⏰ الوقت: ${apt.apt_time}\n` +
-                    `⏳ المدة: ${apt.apt_duration || 'ساعة كاملة'}\n` +
-                    `👤 الضيف: ${apt.apt_with}\n` +
-                    `📍 المكان: ${apt.apt_location || 'مكتب مدير الكلية'}`
+                    `⏳ المدة: ${apt.apt_duration || 'ساعة'}\n` +
+                    `👤 الطرف المقابل: ${apt.apt_with}\n` +
+                    `📍 المكان: ${apt.apt_location || 'مكتب المدير'}`
                 );
-
-                const telegramShareLink = `https://t.me/share/url?url=&text=${telegramMessage}`;
+                const telegramLink = `https://t.me/share/url?url=&text=${telegramMsg}`;
 
                 tr.innerHTML = `
                     <td>
@@ -432,15 +431,15 @@
                     <td><strong style="color: #1e3a8a; font-size: 14px;">${apt.apt_title}</strong></td>
                     <td>
                         <strong style="color: #0f172a;">👤 ${apt.apt_with}</strong><br>
-                        <span style="font-size: 11px; color: #64748b;">الضيف: ${apt.apt_guest_phone || 'غير متوفر'}</span><br>
-                        <span style="font-size: 11px; color: #64748b;">المدير: ${apt.apt_manager_phone || 'غير متوفر'}</span>
+                        <span style="font-size: 11px; color: #64748b;">هاتف الضيف: ${apt.apt_guest_phone || 'غير متوفر'}</span><br>
+                        <span style="font-size: 11px; color: #64748b;">هاتف المدير: ${apt.apt_manager_phone || 'غير متوفر'}</span>
                     </td>
                     <td>
                         <div><b>المكان:</b> ${apt.apt_location || 'مكتب المدير'}</div>
                         <div style="font-size: 12px; color: #475569;"><b>ملاحظات:</b> ${apt.apt_notes || 'لا يوجد'}</div>
                     </td>
                     <td>
-                        <a href="${telegramShareLink}" target="_blank" class="btn-tg">✈️ إرسال تيليجرام</a>
+                        <a href="${telegramLink}" target="_blank" class="btn-tg">✈️ إرسال تيليجرام</a>
                     </td>
                     ${deleteTd}
                 `;
