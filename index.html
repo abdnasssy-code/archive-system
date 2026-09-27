@@ -3,981 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أرشيف كلية الشؤون الفنية والإدارية - وزارة الدفاع</title>
-    <link rel="stylesheet" href="style.css">
-    
-    <!-- مكتبة Supabase الرسمية للويب -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>نظام الديوان والأرشيف الإلكتروني - كلية الشؤون الفنية والإدارية</title>
+    <!-- Bootstrap 5 CSS RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/rtl.min.css">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Cairo', Tahoma, sans-serif; }
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-card { background: white; padding: 35px; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .app-header { background: white; border-radius: 10px; padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    </style>
 </head>
 <body>
 
-    <!-- ================= شاشة تسجيل الدخول ================= -->
+    <!-- شاشة تسجيل الدخول الآمنة -->
     <div id="loginOverlay" class="login-overlay">
         <div class="login-card">
-            <div class="login-header">
-                <h2>بوابة الديوان المركزي - مكتب المدير</h2>
-                <p>يرجى إدخال اسم المستخدم وكلمة المرور للمتابعة</p>
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-shield-halved fa-3x text-primary mb-2"></i>
+                <h4 class="fw-bold text-dark">تسجيل الدخول للنظام</h4>
+                <p class="text-muted small">كلية الشؤون الفنية والإدارية - الأرشيف والمواعيد</p>
             </div>
             <form id="loginForm">
-                <div class="input-group">
-                    <label>اسم المستخدم / الصفة الوظيفية</label>
-                    <input type="text" id="loginUser" required placeholder="أدخل اسم المستخدم...">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">اسم المستخدم أو البريد الإلكتروني</label>
+                    <input type="text" id="loginUser" class="form-control" required placeholder="أدخل البريد أو اسم المستخدم">
                 </div>
-                <div class="input-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="loginPass" required placeholder="أدخل كلمة المرور...">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">كلمة المرور</label>
+                    <input type="password" id="loginPass" class="form-control" required placeholder="أدخل كلمة المرور">
                 </div>
-                <button type="submit" class="btn-submit-custom">دخول إلى النظام</button>
-                <p id="loginError" class="login-error"></p>
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">دخول آمن للنظام</button>
+                <div id="loginError" class="text-danger text-center mt-3 small fw-bold"></div>
             </form>
         </div>
     </div>
 
-    <!-- ================= نافذة تغيير كلمات السر (خاصة بالمدير) ================= -->
-    <div id="passChangeModal" class="appointment-alert-overlay" style="display: none;">
-        <div class="login-card" style="border-top: 4px solid #0284c7; max-width: 420px;">
-            <div class="login-header">
-                <h2>⚙️ إعدادات كلمات السر للنظام</h2>
-                <p>تعديل كلمة سر المدير وكلمة سر الزوار وحفظها سحابياً</p>
-            </div>
-            <form id="changePassForm">
-                <div class="input-group" style="text-align: right; margin-bottom: 12px;">
-                    <label style="font-size: 13px; font-weight: bold;">كلمة سر المدير الجديدة (Admin)</label>
-                    <input type="text" id="newAdminPass" required placeholder="أدخل كلمة سر المدير الجديدة...">
-                </div>
-                <div class="input-group" style="text-align: right; margin-bottom: 15px;">
-                    <label style="font-size: 13px; font-weight: bold;">كلمة سر الزوار الجديدة (Visitor)</label>
-                    <input type="text" id="newVisitorPass" required placeholder="أدخل كلمة سر الزوار الجديدة...">
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button type="submit" class="btn-submit-custom" style="background: #16a34a; flex: 1;" id="savePassBtn">حفظ التغييرات</button>
-                    <button type="button" onclick="closePassModal()" class="btn-submit-custom" style="background: #64748b; width: 80px;">إلغاء</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ================= نافذة التنبيهات العائمة للمواعيد القريبة ================= -->
-    <div id="appointmentAlertModal" class="appointment-alert-overlay" style="display: none;">
-        <div class="appointment-alert-card">
-            <div class="alert-icon">⏰</div>
-            <h3>تنبيه موعد وشيك لسيد مدير الكلية!</h3>
-            <p id="alertMessageText">لديك موعد مجدول خلال ساعة من الآن.</p>
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
-                <button onclick="closeAppointmentAlert()" class="btn-submit-custom" style="background: #0284c7; flex: 1;">إقرار العلم والمتابعة</button>
-                <a id="alertTgBtn" href="#" target="_blank" class="btn-tool btn-telegram" style="padding: 10px 15px; text-decoration: none; display: flex; align-items: center; justify-content: center;">✈️ إرسال عبر تيليجرام</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= النظام الأساسي ================= -->
-    <div id="appContainer" style="display: none;">
-        <header class="app-header">
-            <div class="header-container">
-                <div class="logo-area">
-                    <div class="official-emblem-img-container">
-                        <img src="mod_logo.jpg" alt="شعار وزارة الدفاع" class="ministry-logo-img" onerror="this.style.display='none'; this.parentElement.innerHTML='🦅';">
-                    </div>
-                    <div class="header-titles">
-                        <span class="ministry-tag">وزارة الدفاع ◄ إدارة التدريب</span>
-                        <h2>كلية الشؤون الفنية والإدارية</h2>
-                        <p id="userInfoDisplay">مرحباً بك</p>
-                    </div>
-                </div>
-                
-                <div class="nav-tabs">
-                    <button class="tab-btn active" onclick="switchTab('formTab')">تسجيل كتاب جديد</button>
-                    <button class="tab-btn admin-only" onclick="switchTab('archiveTab')" style="display: none;">أرشيف المعاملات</button>
-                    <button class="tab-btn tab-btn-appointments admin-only" onclick="switchTab('appointmentsTab')" style="display: none;">📅 مواعيد المدير</button>
-                    <button class="tab-btn admin-only" onclick="openPassModal()" style="display: none; background: #0369a1; color: white;">⚙️ كلمة السر</button>
-                    <button class="tab-btn btn-logout" onclick="logoutSystem()">تسجيل خروج</button>
-                </div>
-            </div>
-        </header>
-
-        <main class="main-container">
-            <!-- ================= تبويب تسجيل كتاب جديد ================= -->
-            <div id="formTab" class="tab-content active-tab">
-                <div class="form-card-container">
-                    <div class="panel-header-custom">
-                        <h2>تسجيل معاملة أو بريد رسمي جديد</h2>
-                        <p>توثيق الكتب الواردة والصادرة والداخلية لحفظها في الأرشيف السحابي مع تتبع هوية المُدخل</p>
-                    </div>
-                    <div class="panel-body-custom">
-                        <form id="mailForm">
-                            <div class="form-grid">
-                                <div class="input-group">
-                                    <label for="mail_number">رقم الكتاب / المعاملة *</label>
-                                    <input type="text" id="mail_number" name="mail_number" required placeholder="مثال: 452/ش.ف.إ">
-                                </div>
-                                <div class="input-group">
-                                    <label for="mail_type">نوع المعاملة *</label>
-                                    <select id="mail_type" name="mail_type" required>
-                                        <option value="صادر">صادر</option>
-                                        <option value="وارد">وارد</option>
-                                        <option value="داخلي">داخلي</option>
-                                    </select>
-                                </div>
-                                <div class="input-group full-width highlight-box">
-                                    <label for="reply_to">إشارة إلى الكتاب (في حال كان رداً على كتاب سابق)</label>
-                                    <input type="text" id="reply_to" name="reply_to" placeholder="رقم الكتاب المراد الرد عليه (اختياري)">
-                                </div>
-                                <div class="input-group full-width">
-                                    <label for="subject">موضوع الكتاب *</label>
-                                    <input type="text" id="subject" name="subject" required placeholder="أدخل موضوع الكتاب بإيجاز واحترافية">
-                                </div>
-                                <div class="input-group">
-                                    <label for="sender_dept">الجهة المرسلة *</label>
-                                    <input type="text" id="sender_dept" name="sender_dept" required placeholder="القسم المُرسِل">
-                                </div>
-                                <div class="input-group">
-                                    <label for="receiver_dept">الجهة المستلمة *</label>
-                                    <input type="text" id="receiver_dept" name="receiver_dept" required placeholder="القسم المُستقبِل">
-                                </div>
-                                <div class="input-group">
-                                    <label for="secrecy_level">درجة السرية</label>
-                                    <select id="secrecy_level" name="secrecy_level">
-                                        <option value="عادي">عادي</option>
-                                        <option value="مكتوم">مكتوم</option>
-                                        <option value="سري">سري</option>
-                                        <option value="سري للغاية">سري للغاية</option>
-                                    </select>
-                                </div>
-                                <div class="input-group">
-                                    <label for="status">حالة المعاملة</label>
-                                    <select id="status" name="status">
-                                        <option value="قيد الإجراء">قيد الإجراء</option>
-                                        <option value="منجز">منجز</option>
-                                        <option value="مؤرشف">مؤرشف</option>
-                                    </select>
-                                </div>
-                                <div class="input-group full-width">
-                                    <label for="summary">خلاصة أو توجيهات المدير / نص الكتاب</label>
-                                    <textarea id="summary" name="summary" rows="3" placeholder="اكتب ملخصاً أو توجيهات مدير الكلية بشأن الكتاب..."></textarea>
-                                </div>
-                                <div class="input-group full-width">
-                                    <label for="pdf_file">إرفاق نسخة PDF رسمية</label>
-                                    <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input">
-                                </div>
-                                <div class="full-width">
-                                    <button type="submit" class="btn-submit-custom" id="submitBtn">حفظ وتوثيق المعاملة في الأرشيف المركزي</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ================= تبويب أرشيف المعاملات (للأدمن فقط) ================= -->
-            <div id="archiveTab" class="tab-content admin-only" style="display: none;">
-                <div class="stats-container">
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">إجمالي المعاملات</span>
-                            <span class="stat-number" id="totalCount">0</span>
-                        </div>
-                        <div class="stat-icon">📁</div>
-                    </div>
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">الكتب الواردة</span>
-                            <span class="stat-number" id="incomingCount">0</span>
-                        </div>
-                        <div class="stat-icon">📥</div>
-                    </div>
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">الكتب الصادرة</span>
-                            <span class="stat-number" id="outgoingCount">0</span>
-                        </div>
-                        <div class="stat-icon">📤</div>
-                    </div>
-                    <div class="stat-card">
-                        <div>
-                            <span class="stat-label">قيد الإجراء (للمتابعة)</span>
-                            <span class="stat-number" id="pendingCount">0</span>
-                        </div>
-                        <div class="stat-icon">⏳</div>
-                    </div>
-                </div>
-
-                <div class="controls-panel">
-                    <div class="filter-group">
-                        <input type="text" id="searchInput" class="search-field" placeholder="بحث برقم الكتاب، الموضوع، أو المُدخل..." onkeyup="applyFilters()">
-                        
-                        <select id="filterType" class="filter-select" onchange="applyFilters()">
-                            <option value="all">جميع الأنواع (وارد، صادر، داخلي)</option>
-                            <option value="وارد">وارد فقط</option>
-                            <option value="صادر">صادر فقط</option>
-                            <option value="داخلي">داخلي فقط</option>
-                        </select>
-
-                        <select id="filterStatus" class="filter-select" onchange="applyFilters()">
-                            <option value="all">جميع الحالات</option>
-                            <option value="قيد الإجراء">قيد الإجراء</option>
-                            <option value="منجز">منجز</option>
-                            <option value="مؤرشف">مؤرشف</option>
-                        </select>
-                    </div>
-                    
-                    <div class="action-buttons-group">
-                        <button class="btn-tool btn-excel" onclick="exportToExcel()">📊 تصدير إلى Excel</button>
-                        <button class="btn-tool btn-print" onclick="printReport()">🖨️ طباعة تقرير رسمي</button>
-                        <button class="btn-tool btn-refresh" onclick="loadMails()">🔄 تحديث</button>
-                    </div>
-                </div>
-
-                <div class="archive-panel">
-                    <div class="table-container">
-                        <table id="mailsTable">
-                            <thead>
-                                <tr>
-                                    <th>الرقم / النوع</th>
-                                    <th>الموضوع والإشارة</th>
-                                    <th>المرسل ← المستقبل</th>
-                                    <th>الحالة والسرية</th>
-                                    <th>المُدخل (المسؤول)</th>
-                                    <th>المرفق</th>
-                                    <th id="thActionHeader">إدارة</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tableBody">
-                                <tr><td colspan="7" class="loading-row">جاري مزامنة بيانات الأرشيف...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ================= تبويب مواعيد وجدولة المدير (للأدمن فقط) ================= -->
-            <div id="appointmentsTab" class="tab-content admin-only" style="display: none;">
-                <div id="appointmentFormContainer" class="form-card-container" style="margin-bottom: 25px;">
-                    <div class="panel-header-appointments">
-                        <h2>📌 لوحة جدولة وتنسيق مواعيد المدير</h2>
-                        <p>تحديد المواعيد، مدة الجلسة، أرقام التواصل للتنبيه الآلي عبر تيليجرام قبل ساعة</p>
-                    </div>
-                    <div class="panel-body-custom">
-                        <form id="appointmentForm">
-                            <div class="form-grid">
-                                <div class="input-group full-width">
-                                    <label for="apt_title">عنوان الموعد أو موضوع الاجتماع *</label>
-                                    <input type="text" id="apt_title" required placeholder="مثال: اجتماع مع رؤساء الأقسام لمناقشة خطة التدريب">
-                                </div>
-                                <div class="input-group">
-                                    <label for="apt_date">تاريخ الموعد *</label>
-                                    <input type="date" id="apt_date" required>
-                                </div>
-                                <div class="input-group">
-                                    <label for="apt_time">وقت الموعد *</label>
-                                    <input type="time" id="apt_time" required>
-                                </div>
-                                <div class="input-group">
-                                    <label for="apt_duration">مدة الموعد المتوقعة *</label>
-                                    <select id="apt_duration" required class="filter-select" style="width: 100%; padding: 10px;">
-                                        <option value="30 دقيقة">30 دقيقة</option>
-                                        <option value="ساعة كاملة" selected>ساعة كاملة (60 دقيقة)</option>
-                                        <option value="ساعة ونصف">ساعة ونصف</option>
-                                        <option value="ساعتان">ساعتان</option>
-                                        <option value="جلسة مفتوحة">جلسة مفتوحة / يوم كامل</option>
-                                    </select>
-                                </div>
-                                <div class="input-group">
-                                    <label for="apt_with">الشخصية الزائرة أو الطرف المقابل *</label>
-                                    <input type="text" id="apt_with" required placeholder="مثال: قائد كتيبة الاستطلاع / وفد قيادي">
-                                </div>
-                                <div class="input-group">
-                                    <label for="guest_phone">رقم هاتف / تواصل الضيف</label>
-                                    <input type="text" id="guest_phone" placeholder="مثال: 0912345678 أو حساب تيليجرام">
-                                </div>
-                                <div class="input-group">
-                                    <label for="apt_location">مكان الاجتماع</label>
-                                    <input type="text" id="apt_location" value="مكتب مدير الكلية" placeholder="مثال: مكتب المدير / قاعة الاجتماعات">
-                                </div>
-                                <div class="input-group full-width">
-                                    <label for="apt_notes">أجندة أو ملاحظات الاجتماع</label>
-                                    <textarea id="apt_notes" rows="2" placeholder="أبرز النقاط المراد طرحها ومناقشتها في الموعد..."></textarea>
-                                </div>
-                                <div class="full-width">
-                                    <button type="submit" class="btn-submit-appointments" id="aptSubmitBtn">حفظ الموعد وتفعيل التنبيه المباشر</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="archive-panel appointments-panel-border">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="color: #0f172a; margin:0; display:flex; align-items:center; gap:8px;">
-                            <span>🗓️</span> جدول مواعيد السيد المدير الرسمية
-                        </h3>
-                        <button class="btn-tool btn-refresh-appointments" onclick="loadAppointments()">🔄 تحديث المواعيد</button>
-                    </div>
-                    <div class="table-container">
-                        <table id="appointmentsTable">
-                            <thead>
-                                <tr class="appointments-thead-row">
-                                    <th>التاريخ والوقت</th>
-                                    <th>المدة</th>
-                                    <th>عنوان الموعد</th>
-                                    <th>الطرف المقابل والهاتف</th>
-                                    <th>المكان والملاحظات</th>
-                                    <th>تنبيه تيليجرام</th>
-                                    <th>إدارة</th>
-                                </tr>
-                            </thead>
-                            <tbody id="appointmentsTableBody">
-                                <tr><td colspan="7" class="loading-row">جاري جلب جدول المواعيد...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ================= التنسيقات والألوان ================= -->
-    <style>
-        .login-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0b1120; display: flex; justify-content: center; align-items: center; z-index: 9999;
-        }
-        .login-card {
-            background: #ffffff; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3); border-top: 4px solid #d4af37;
-        }
-        .login-header h2 { margin: 0 0 5px 0; color: #0a192f; font-size: 19px; }
-        .login-header p { margin: 0 0 20px 0; color: #64748b; font-size: 12px; }
-        .login-error { color: #dc2626; font-size: 12px; margin-top: 10px; text-align: center; }
-
-        .appointment-alert-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 10000;
-        }
-        .appointment-alert-card {
-            background: #fff; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px;
-            text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-top: 5px solid #dc2626;
-        }
-        .alert-icon { font-size: 45px; margin-bottom: 10px; }
-        .appointment-alert-card h3 { color: #dc2626; margin-top: 0; }
-        .appointment-alert-card p { color: #334155; font-size: 15px; line-height: 1.6; }
-
-        .controls-panel {
-            background: #ffffff; padding: 15px; border-radius: 8px; margin-bottom: 20px;
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
-        }
-        .filter-group { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; }
-        .filter-select {
-            padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 13px; background: #f8fafc; outline: none;
-        }
-        .action-buttons-group { display: flex; gap: 8px; }
-        .btn-tool {
-            padding: 8px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; color: white; display: inline-flex; align-items: center; gap: 5px;
-        }
-        .btn-excel { background: #16a34a; }
-        .btn-excel:hover { background: #15803d; }
-        .btn-print { background: #475569; }
-        .btn-print:hover { background: #334155; }
-        .btn-refresh { background: #0284c7; }
-        .btn-refresh:hover { background: #0369a1; }
-        .btn-telegram { background: #0088cc; color: white; text-decoration: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
-        .btn-telegram:hover { background: #006699; }
-
-        .btn-logout { background: #dc2626 !important; color: white !important; }
-        .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .btn-delete:hover { background: #dc2626; color: white; }
-        .btn-pdf { background: #0284c7; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; font-weight: bold; display: inline-block; }
-        .btn-pdf:hover { background: #0369a1; }
+    <!-- التطبيق الرئيسي (مخفي لحين تسجيل الدخول) -->
+    <div id="appContainer" class="container py-4" style="display: none;">
         
-        .official-emblem-img-container {
-            width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
-            border: 2px solid #d4af37; display: flex; align-items: center; justify-content: center; background: #050d1a;
-        }
-        .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
+        <!-- رأس الصفحة -->
+        <div class="app-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-dark m-0"><i class="fa-solid fa-folder-open text-primary me-2"></i> نظام الديوان والأرشيف</h3>
+                <small id="userInfoDisplay" class="text-muted fw-semibold"></small>
+            </div>
+            <button onclick="logout()" class="btn btn-outline-danger btn-sm px-3 fw-bold">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> تسجيل الخروج
+            </button>
+        </div>
 
-        .tab-btn-appointments {
-            background: rgba(212, 175, 55, 0.1) !important;
-            border-bottom: 3px solid #d4af37 !important;
-            color: #d4af37 !important;
-        }
-        .tab-btn-appointments.active {
-            background: #d4af37 !important;
-            color: #0f172a !important;
-            font-weight: bold;
-        }
+        <!-- محتوى المعاملات والأرشيف -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                        <h5 class="m-0"><i class="fa-solid fa-list-check me-2"></i> سجل المعاملات والكتب الواردة والصادرة</h5>
+                        <button id="addMailBtn" class="btn btn-light btn-sm fw-bold text-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addMailModal">
+                            <i class="fa-solid fa-plus me-1"></i> إضافة معاملة جديدة
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>الرقم</th>
+                                        <th>الموضوع</th>
+                                        <th>الجهة المرسلة/المستقبلة</th>
+                                        <th>التاريخ</th>
+                                        <th>الحالة</th>
+                                        <th>إجراءات التحكم</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mailsTableBody">
+                                    <!-- البيانات تُجلب وتُعبأ برمجياً -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        .panel-header-appointments {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border-right: 5px solid #d4af37;
-            padding: 20px;
-            color: #ffffff;
-            border-radius: 8px 8px 0 0;
-        }
-        .panel-header-appointments h2 {
-            color: #f59e0b;
-            margin: 0 0 5px 0;
-            font-size: 18px;
-        }
-        .panel-header-appointments p {
-            color: #94a3b8;
-            margin: 0;
-            font-size: 13px;
-        }
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-        .btn-submit-appointments {
-            background: linear-gradient(135deg, #d97706, #b45309);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s;
-        }
-        .btn-submit-appointments:hover {
-            background: linear-gradient(135deg, #b45309, #92400e);
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
-        }
-
-        .appointments-panel-border {
-            border-top: 4px solid #d4af37 !important;
-        }
-        .appointments-thead-row th {
-            background-color: #0f172a !important;
-            color: #f59e0b !important;
-        }
-        .btn-refresh-appointments {
-            background: #b45309;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .btn-refresh-appointments:hover {
-            background: #78350f;
-        }
-    </style>
-
-    <!-- ================= سكربت التشغيل الديناميكي لكلمات السر ================= -->
     <script>
-        const SUPABASE_URL = 'https://rzlpuhabircpnmmwbbzo.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bHB1aGFiaXJjcG5tbXdiYnpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjQ0OTgsImV4cCI6MjEwNjAwMDQ5OH0.DcP18cHurdmYaLdAK-M_k5i-X4Sq-8lz0wWAr9i3K7U';
+        // === إعدادات اتصال Supabase ===
+        const SUPABASE_URL = 'ضع_رابط_قاعدة_بيانات_سوبابيس_هنا';
+        const SUPABASE_ANON_KEY = 'ضع_مفتاح_الـ_anon_key_هنا';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // القيم الافتراضية المحلية (في حال انقطاع الشبكة)
-        let ACCOUNTS = {
-            adminPass: "admin123",
-            visitorPass: "user123"
+        // إعدادات كلمات المرور للزوار
+        const ACCOUNTS = {
+            visitorPass: 'visitor123' // كلمة مرور الزائر المخصصة لإضافة البريد فقط
         };
 
         let currentUser = null;
-        let globalMailsCache = [];
-        let globalAppointmentsCache = [];
         let alertInterval = null;
 
-        // جلب كلمات السر الديناميكية من Supabase عند تحميل الصفحة
-        async function fetchSystemPasswords() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('system_settings')
-                    .select('*')
-                    .eq('id', 1)
-                    .single();
-
-                if (data) {
-                    ACCOUNTS.adminPass = data.admin_pass;
-                    ACCOUNTS.visitorPass = data.visitor_pass;
-                }
-            } catch (e) {
-                console.log("استخدام كلمات السر الافتراضية المحلية.");
+        // تخصيص ظهور الأزرار بناءً على الصلاحيات
+        function applyPermissionsUI() {
+            const addMailBtn = document.getElementById('addMailBtn');
+            if (currentUser.role === 'visitor') {
+                if(addMailBtn) addMailBtn.style.display = 'block'; // مسموح للزائر الإضافة
+            } else if (currentUser.role === 'admin') {
+                if(addMailBtn) addMailBtn.style.display = 'block'; // صلاحيات كاملة للأدمن
             }
         }
-        fetchSystemPasswords();
 
-        // تسجيل الدخول
+        // معالجة تسجيل الدخول الآمن
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('loginUser').value.trim();
             const password = document.getElementById('loginPass').value.trim();
             const errorEl = document.getElementById('loginError');
+            errorEl.innerText = 'جاري التحقق من الأمان والصلاحيات...';
 
-            // إعطاء فرصة سريعة لجلب التحديثات
-            await fetchSystemPasswords();
+            // 1. محاولة تسجيل الدخول كـ "مدير" عبر نظام مصادقة Supabase المشفر
+            const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                email: username.includes('@') ? username : 'admin@college.mil', // بريد الأدمن الافتراضي
+                password: password
+            });
 
-            if (password === ACCOUNTS.adminPass) {
+            if (!authError && authData.session) {
                 currentUser = { username: username || 'المدير العام', role: 'admin' };
-            } else if (password === ACCOUNTS.visitorPass) {
-                currentUser = { username: username || 'زائر', role: 'visitor' };
-            } else {
-                errorEl.innerText = 'كلمة المرور غير صحيحة!';
+                
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
+                document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} (مدير النظام - حماية كاملة)`;
+
+                applyPermissionsUI();
+                loadMails();
+
                 return;
             }
 
-            document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'block';
-            
-            const roleBadge = currentUser.role === 'admin' ? '(مدير النظام - صلاحيات كاملة)' : '(مُدخل بريد - إضافة بريد فقط)';
-            document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} ${roleBadge}`;
+            // 2. التحقق من حساب "الزائر" في حال لم يكن أدمن
+            if (password === ACCOUNTS.visitorPass) {
+                currentUser = { username: username || 'زائر', role: 'visitor' };
 
-            applyPermissionsUI();
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
+                document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} (مُدخل بريد - إضافة فقط)`;
 
-            if (currentUser.role === 'admin') {
-                loadMails();
-                loadAppointments();
-
-                if(alertInterval) clearInterval(alertInterval);
-                alertInterval = setInterval(checkUpcomingAppointments, 30000);
+                applyPermissionsUI();
+                loadMails(); // سيحاول الجلب، وقاعدة البيانات ستتحكم بالصلاحيات عبر RLS
+                return;
             }
+
+            errorEl.innerText = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
         });
 
-        // إدارة كلمات السر (خاص بالمدير)
-        function openPassModal() {
-            if(currentUser.role !== 'admin') return;
-            document.getElementById('newAdminPass').value = ACCOUNTS.adminPass;
-            document.getElementById('newVisitorPass').value = ACCOUNTS.visitorPass;
-            document.getElementById('passChangeModal').style.display = 'flex';
-        }
+        // دالة جلب المعاملات من قاعدة البيانات مع مراعاة قيود الأمان
+        async function loadMails() {
+            const { data, error } = await supabaseClient
+                .from('military_mails')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        function closePassModal() {
-            document.getElementById('passChangeModal').style.display = 'none';
-        }
+            const tbody = document.getElementById('mailsTableBody');
+            tbody.innerHTML = '';
 
-        document.getElementById('changePassForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            if(currentUser.role !== 'admin') return;
-
-            const saveBtn = document.getElementById('savePassBtn');
-            saveBtn.disabled = true;
-            saveBtn.innerText = 'جاري الحفظ...';
-
-            const newAdmin = document.getElementById('newAdminPass').value.trim();
-            const newVisitor = document.getElementById('newVisitorPass').value.trim();
-
-            try {
-                const { error } = await supabaseClient
-                    .from('system_settings')
-                    .upsert({
-                        id: 1,
-                        admin_pass: newAdmin,
-                        visitor_pass: newVisitor,
-                        updated_at: new Date()
-                    });
-
-                if(error) throw error;
-
-                ACCOUNTS.adminPass = newAdmin;
-                ACCOUNTS.visitorPass = newVisitor;
-
-                alert('تم تحديث كلمات السر بنجاح بالسحابة!');
-                closePassModal();
-            } catch (error) {
-                alert('فشل حفظ كلمات السر: ' + error.message);
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.innerText = 'حفظ التغييرات';
+            if (error) {
+                console.error('ملاحظة أمنية (RLS):', error.message);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">ليس لديك صلاحية لعرض الأرشيف (حساب زائر). يمكنك إضافة معاملات جديدة فقط.</td></tr>`;
+                return;
             }
-        });
-
-        function applyPermissionsUI() {
-            const isAdmin = currentUser && currentUser.role === 'admin';
             
-            const adminElements = document.querySelectorAll('.admin-only');
-            adminElements.forEach(el => {
-                el.style.display = isAdmin ? '' : 'none';
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">لا توجد معاملات مسجلة حالياً.</td></tr>`;
+                return;
+            }
+
+            data.forEach(mail => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${mail.mail_number || '-'}</td>
+                        <td>${mail.subject || '-'}</td>
+                        <td>${mail.sender || '-'}</td>
+                        <td>${mail.date || '-'}</td>
+                        <td><span class="badge bg-secondary">${mail.status || 'قيد الإجراء'}</span></td>
+                        <td>
+                            ${currentUser.role === 'admin' ? 
+                                `<button class="btn btn-sm btn-outline-danger" onclick="deleteMail('${mail.id}')"><i class="fa-solid fa-trash"></i></button>` : 
+                                `<span class="text-muted small">عرض فقط للأدمن</span>`
+                            }
+                        </td>
+                    </tr>
+                `;
             });
-
-            if (!isAdmin) {
-                switchTab('formTab');
-            }
         }
 
-        function logoutSystem() {
+        // دالة تسجيل الخروج الآمن
+        async function logout() {
+            await supabaseClient.auth.signOut();
             currentUser = null;
             if(alertInterval) clearInterval(alertInterval);
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('loginOverlay').style.display = 'flex';
-            document.getElementById('loginForm').reset();
+            document.getElementById('loginPass').value = '';
             document.getElementById('loginError').innerText = '';
-        }
-
-        function switchTab(tabId) {
-            if (currentUser && currentUser.role !== 'admin' && tabId !== 'formTab') {
-                alert('عذراً، هذه الصفحة مخصصة لمدير النظام فقط.');
-                return;
-            }
-
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                if(!el.classList.contains('btn-logout')) el.classList.remove('active');
-            });
-
-            const targetTab = document.getElementById(tabId);
-            if (targetTab) {
-                targetTab.classList.add('active-tab');
-            }
-
-            if (tabId === 'archiveTab' && currentUser.role === 'admin') loadMails();
-            if (tabId === 'appointmentsTab' && currentUser.role === 'admin') loadAppointments();
-        }
-
-        // ================= إضافة وتوثيق كتاب بريد جديد =================
-        document.getElementById('mailForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'جاري الحفظ وتوثيق المُدخل...';
-
-            const fileInput = document.getElementById('pdf_file');
-            let pdfUrl = '';
-            let pdfName = 'بدون';
-
-            try {
-                if(fileInput.files && fileInput.files[0]) {
-                    const file = fileInput.files[0];
-                    pdfName = file.name;
-                    const safeFileName = `file_${Date.now()}.pdf`;
-                    const filePath = `archive_pdfs/${safeFileName}`;
-                    
-                    const { error: uploadError } = await supabaseClient.storage
-                        .from('archive_pdfs')
-                        .upload(filePath, file);
-
-                    if(uploadError) throw uploadError;
-
-                    const { data: publicUrlData } = supabaseClient.storage
-                        .from('archive_pdfs')
-                        .getPublicUrl(filePath);
-
-                    pdfUrl = publicUrlData.publicUrl;
-                }
-
-                const newMail = {
-                    mail_number: document.getElementById('mail_number').value,
-                    mail_type: document.getElementById('mail_type').value,
-                    reply_to: document.getElementById('reply_to').value,
-                    subject: document.getElementById('subject').value,
-                    sender_dept: document.getElementById('sender_dept').value,
-                    receiver_dept: document.getElementById('receiver_dept').value,
-                    secrecy_level: document.getElementById('secrecy_level').value,
-                    status: document.getElementById('status').value,
-                    summary: document.getElementById('summary').value,
-                    pdf_name: pdfName,
-                    pdf_url: pdfUrl,
-                    created_by: currentUser.username
-                };
-
-                const { error: dbError } = await supabaseClient
-                    .from('military_mails')
-                    .insert([newMail]);
-
-                if(dbError) throw dbError;
-
-                alert('تم حفظ وتوثيق المعاملة بنجاح باسم المسؤول: ' + currentUser.username);
-                document.getElementById('mailForm').reset();
-
-                if (currentUser.role === 'admin') {
-                    switchTab('archiveTab');
-                }
-            } catch (error) {
-                console.error("خطأ أثناء الحفظ:", error);
-                alert('حدث خطأ أثناء الحفظ: ' + (error.message || error));
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف المركزي';
-            }
-        });
-
-        // ================= إضافة موعد جديد للمدير =================
-        document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            if(currentUser.role !== 'admin') {
-                alert('عذراً، إضافة وتعديل المواعيد متاح فقط للمدير!');
-                return;
-            }
-
-            const aptBtn = document.getElementById('aptSubmitBtn');
-            aptBtn.disabled = true;
-            aptBtn.innerText = 'جاري حفظ الموعد...';
-
-            try {
-                const newApt = {
-                    apt_title: document.getElementById('apt_title').value,
-                    apt_date: document.getElementById('apt_date').value,
-                    apt_time: document.getElementById('apt_time').value,
-                    apt_duration: document.getElementById('apt_duration').value,
-                    apt_with: document.getElementById('apt_with').value,
-                    guest_phone: document.getElementById('guest_phone').value || '',
-                    apt_location: document.getElementById('apt_location').value,
-                    apt_notes: document.getElementById('apt_notes').value,
-                    created_by: currentUser.username
-                };
-
-                const { error } = await supabaseClient
-                    .from('manager_appointments')
-                    .insert([newApt]);
-
-                if(error) throw error;
-
-                alert('تمت جدولة الموعد بنجاح وتفعيل التنبيه التلقائي.');
-                document.getElementById('appointmentForm').reset();
-                document.getElementById('apt_location').value = 'مكتب مدير الكلية';
-                loadAppointments();
-            } catch (error) {
-                alert('فشل حفظ الموعد: ' + error.message);
-            } finally {
-                aptBtn.disabled = false;
-                aptBtn.innerText = 'حفظ الموعد وتفعيل التنبيه المباشر';
-            }
-        });
-
-        async function loadAppointments() {
-            if (currentUser.role !== 'admin') return;
-            const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري جلب جدول المواعيد...</td></tr>`;
-
-            try {
-                const { data, error } = await supabaseClient
-                    .from('manager_appointments')
-                    .select('*')
-                    .order('apt_date', { ascending: true })
-                    .order('apt_time', { ascending: true });
-
-                if(error) throw error;
-
-                globalAppointmentsCache = data || [];
-                renderAppointmentsTable(globalAppointmentsCache);
-            } catch (error) {
-                console.error("خطأ جلب المواعيد:", error);
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">تعذر جلب المواعيد.</td></tr>`;
-            }
-        }
-
-        function renderAppointmentsTable(appointments) {
-            const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = '';
-
-            if(appointments.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
-                return;
-            }
-
-            appointments.forEach(apt => {
-                const duration = (apt && 'apt_duration' in apt && apt.apt_duration) ? apt.apt_duration : 'ساعة كاملة';
-                const phone = (apt && 'guest_phone' in apt && apt.guest_phone) ? apt.guest_phone : 'غير مدخل';
-
-                const tgText = encodeURIComponent(
-                    `📌 *تنبيه بموعد رسمي - كلية الشؤون الفنية والإدارية*\n\n` +
-                    `🗓 *التاريخ:* ${apt.apt_date}\n` +
-                    `⏰ *الوقت:* ${apt.apt_time}\n` +
-                    `⏱ *المدة المتوقعة:* ${duration}\n` +
-                    `📌 *موضوع الموعد:* ${apt.apt_title}\n` +
-                    `👥 *مع:* ${apt.apt_with}\n` +
-                    `📍 *المكان:* ${apt.apt_location || 'مكتب المدير'}\n` +
-                    `📞 *تواصل الضيف:* ${phone}\n` +
-                    `📝 *ملاحظات:* ${apt.apt_notes || 'لا يوجد'}`
-                );
-                const tgShareUrl = `https://t.me/share/url?url=${tgText}`;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong style="color:#b45309;">📅 ${apt.apt_date || 'غير محدد'}</strong><br><span style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px; font-size:11px;">⏰ ${apt.apt_time || ''}</span></td>
-                    <td><span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">⏱️ ${duration}</span></td>
-                    <td><strong>${apt.apt_title}</strong></td>
-                    <td>${apt.apt_with}<br><small style="color:#64748b;">📞 ${phone}</small></td>
-                    <td>
-                        <small style="display:block; color:#0f172a;">📍 ${apt.apt_location || 'مكتب المدير'}</small>
-                        <small style="font-size:11px; color:#475569;">📝 ${apt.apt_notes || 'بدون'}</small>
-                    </td>
-                    <td>
-                        <a href="${tgShareUrl}" target="_blank" class="btn-telegram">✈️ إرسال للتلغرام</a>
-                    </td>
-                    <td><button class="btn-delete" onclick="deleteAppointment(${apt.id})">🗑️ حذف</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function deleteAppointment(id) {
-            if(currentUser.role !== 'admin') return;
-            if(!confirm('هل أنت متأكد من رغبتك في حذف هذا الموعد من جدول المدير؟')) return;
-            try {
-                const { error } = await supabaseClient.from('manager_appointments').delete().eq('id', id);
-                if(error) throw error;
-                loadAppointments();
-            } catch(e) {
-                alert('فشل الحذف: ' + e.message);
-            }
-        }
-
-        async function loadMails() {
-            if (currentUser.role !== 'admin') return;
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري مزامنة بيانات الأرشيف...</td></tr>`;
-
-            try {
-                const { data, error } = await supabaseClient
-                    .from('military_mails')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if(error) throw error;
-
-                globalMailsCache = data || [];
-                updateCounters(globalMailsCache);
-                applyFilters();
-            } catch (error) {
-                console.error("خطأ جلب المعاملات:", error);
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">تعذر جلب البيانات من السحابة.</td></tr>`;
-            }
-        }
-
-        function updateCounters(mails) {
-            document.getElementById('totalCount').innerText = mails.length;
-            document.getElementById('incomingCount').innerText = mails.filter(m => m.mail_type === 'وارد').length;
-            document.getElementById('outgoingCount').innerText = mails.filter(m => m.mail_type === 'صادر').length;
-            document.getElementById('pendingCount').innerText = mails.filter(m => m.status === 'قيد الإجراء').length;
-        }
-
-        function applyFilters() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const typeFilter = document.getElementById('filterType').value;
-            const statusFilter = document.getElementById('filterStatus').value;
-
-            const filtered = globalMailsCache.filter(item => {
-                const matchesSearch = (item.mail_number && item.mail_number.toLowerCase().includes(query)) ||
-                                     (item.subject && item.subject.toLowerCase().includes(query)) ||
-                                     (item.created_by && item.created_by.toLowerCase().includes(query));
-                const matchesType = typeFilter === 'all' || item.mail_type === typeFilter;
-                const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-
-                return matchesSearch && matchesType && matchesStatus;
-            });
-
-            renderMailsTable(filtered);
-        }
-
-        function renderMailsTable(mails) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-
-            if(mails.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row">لا توجد معاملة مطابقة لخيارات البحث.</td></tr>`;
-                return;
-            }
-
-            mails.forEach(mail => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>
-                        <strong>${mail.mail_number}</strong><br>
-                        <small style="color: #64748b;">[${mail.mail_type}]</small>
-                    </td>
-                    <td>
-                        <strong>${mail.subject}</strong>
-                        ${mail.reply_to ? `<br><small style="color:#d97706;">إشارة إلى: ${mail.reply_to}</small>` : ''}
-                        ${mail.summary ? `<br><small style="color:#475569;">📌 ${mail.summary}</small>` : ''}
-                    </td>
-                    <td><small>${mail.sender_dept} ➔ ${mail.receiver_dept}</small></td>
-                    <td>
-                        <span style="font-size:11px; font-weight:bold;">${mail.status}</span><br>
-                        <small style="color:#dc2626;">🔒 ${mail.secrecy_level}</small>
-                    </td>
-                    <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">👤 ${mail.created_by || 'غير محدد'}</span></td>
-                    <td>
-                        ${mail.pdf_url ? `<a href="${mail.pdf_url}" target="_blank" class="btn-pdf">📄 عرض PDF</a>` : '<span style="color:#94a3b8; font-size:11px;">لا يوجد</span>'}
-                    </td>
-                    <td><button class="btn-delete" onclick="deleteMail(${mail.id})">حذف</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function deleteMail(id) {
-            if(currentUser.role !== 'admin') return;
-            if(!confirm('هل أنت تأكد من حذف هذه المعاملة نهائياً؟')) return;
-            try {
-                const { error } = await supabaseClient.from('military_mails').delete().eq('id', id);
-                if(error) throw error;
-                loadMails();
-            } catch (error) {
-                alert('حدث خطأ أثناء الحذف: ' + error.message);
-            }
-        }
-
-        function checkUpcomingAppointments() {
-            if(currentUser.role !== 'admin' || !globalAppointmentsCache || globalAppointmentsCache.length === 0) return;
-
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
-
-            globalAppointmentsCache.forEach(apt => {
-                if(apt.apt_date === todayStr && apt.apt_time) {
-                    const [hours, minutes] = apt.apt_time.split(':');
-                    const aptTimeObj = new Date();
-                    aptTimeObj.setHours(parseInt(hours), parseInt(minutes), 0);
-
-                    const diffMs = aptTimeObj - now;
-                    const diffMinutes = Math.floor(diffMs / 60000);
-
-                    if(diffMinutes >= -10 && diffMinutes <= 60 && !apt.alerted) {
-                        apt.alerted = true;
-                        let timeText = diffMinutes > 0 ? `يبدأ خلال ${diffMinutes} دقيقة` : `الموعد حان أو بدأ منذ قليل`;
-                        
-                        const tgText = encodeURIComponent(
-                            `⏰ *تنبيه موعد وشيك (خلال ساعة)*\n\n` +
-                            `📌 *الموضوع:* ${apt.apt_title}\n` +
-                            `👥 *مع:* ${apt.apt_with}\n` +
-                            `⏰ *الوقت:* ${apt.apt_time}\n` +
-                            `📍 *المكان:* ${apt.apt_location || 'مكتب المدير'}`
-                        );
-                        
-                        triggerAlertModal(`تنبيه: الموعد "${apt.apt_title}" مع (${apt.apt_with}) - ${timeText} في ${apt.apt_location || 'مكتب المدير'}.`, `https://t.me/share/url?url=${tgText}`);
-                    }
-                }
-            });
-        }
-
-        function triggerAlertModal(msg, tgUrl) {
-            document.getElementById('alertMessageText').innerText = msg;
-            const tgBtn = document.getElementById('alertTgBtn');
-            if(tgBtn) tgBtn.href = tgUrl || '#';
-            document.getElementById('appointmentAlertModal').style.display = 'flex';
-        }
-
-        function closeAppointmentAlert() {
-            document.getElementById('appointmentAlertModal').style.display = 'none';
-        }
-
-        function exportToExcel() {
-            if(globalMailsCache.length === 0) {
-                alert('لا توجد بيانات لتصديرها.');
-                return;
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += "رقم الكتاب,النوع,الموضوع,من,إلى,السرية,الحالة,المُدخل\n";
-
-            globalMailsCache.forEach(m => {
-                csvContent += `"${m.mail_number}","${m.mail_type}","${m.subject}","${m.sender_dept}","${m.receiver_dept}","${m.secrecy_level}","${m.status}","${m.created_by}"\n`;
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `سجل_الأرشيف_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function printReport() {
-            window.print();
         }
     </script>
 </body>
