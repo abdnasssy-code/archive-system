@@ -382,7 +382,7 @@
                 <div class="archive-panel appointments-panel-border">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 style="color: #0f172a; margin:0; display:flex; align-items:center; gap:8px;">
-                            <span>🗓️</span> جدول مواعيد السيد المدير الرسمية
+                            <span>🗓️</span> جدول مواعيد السيد المدير الرسمية (الأحدث بالأعلى)
                         </h3>
                         <button class="btn-tool btn-refresh-appointments" onclick="loadAppointments()">🔄 تحديث المواعيد</button>
                     </div>
@@ -500,7 +500,7 @@
         .btn-pdf { background: #0284c7; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
 
-        /* ================= ألوان أسطر الحالات بالأرشيف ================= */
+        /* ================= ألوان أسطر الحالات بالأرشيف ================= -->
         tr.status-waiting { background-color: #fef9c3 !important; }
         tr.status-waiting td { background-color: #fef9c3 !important; color: #713f12 !important; border-bottom: 1px solid #fef08a !important; }
 
@@ -786,13 +786,11 @@
             document.getElementById('passChangeModal').style.display = 'none';
         }
 
-        // دالة عرض المعاينة الدقيقة (تفرقة صحيحة بين ملفات PDF والصور)
         function openPdfModal(url) {
             if(!url) return;
             const iframe = document.getElementById('pdfFrame');
             const img = document.getElementById('imgFrame');
 
-            // فحص دقيق: هل الرابط يعود لملف PDF أم صورة؟
             const isPdf = url.toLowerCase().includes('.pdf');
 
             if (isPdf) {
@@ -936,7 +934,6 @@
                     tr.classList.add('status-waiting');
                 }
 
-                // التمييز الصحيح لزر المرفق (PDF أو صورة)
                 let attachBtnHtml = '-';
                 if (mail.pdf_url && mail.pdf_url.trim() !== '') {
                     const isPdf = mail.pdf_url.toLowerCase().includes('.pdf');
@@ -1058,7 +1055,6 @@
             }
         }
 
-        // الحفظ ورفع المرفق (مع الحفاظ على امتداد الملف الحقيقي سواء PDF أو صورة)
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -1106,7 +1102,6 @@
                         .upload(fileName, fileToUpload);
 
                     if (storageErr) {
-                        console.error("خطأ رفع التخزين السحابي:", storageErr);
                         alert('فشل رفع الملف للسحابة: ' + storageErr.message);
                         btn.disabled = false;
                         btn.innerText = originalText;
@@ -1164,19 +1159,62 @@
             }
         });
 
+        // جلب وتنظيف المواعيد التلقائي (الأحدث/الأقرب بالأعلى، وحذف المنتهية تلقائياً)
         async function loadAppointments() {
             if (!currentUser || currentUser.role !== 'admin') return;
             const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" class="loading-row">جاري جلب جدول المواعيد...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-row">جاري جلب وترتيب المواعيد...</td></tr>';
 
             try {
                 const { data, error } = await supabaseClient
                     .from('manager_appointments')
-                    .select('*')
-                    .order('apt_date', { ascending: true });
+                    .select('*');
 
                 if (error) throw error;
-                globalAppointmentsCache = data || [];
+                
+                const now = new Date();
+                let activeApts = [];
+                let expiredIds = [];
+
+                // فحص المواعيد وحذف المنتهية منها تلقائياً
+                if (data) {
+                    data.forEach(apt => {
+                        const aptDateTime = new Date(`${apt.apt_date}T${apt.apt_time}`);
+                        
+                        // احتساب وقت انتهاء الموعد بناءً على المدة المحددة
+                        let durationMinutes = 60; // افتراضي ساعة
+                        if (apt.apt_duration === '30 دقيقة') durationMinutes = 30;
+                        else if (apt.apt_duration === 'ساعة ونصف') durationMinutes = 90;
+                        else if (apt.apt_duration === 'ساعتان') durationMinutes = 120;
+                        else if (apt.apt_duration === 'جلسة مفتوحة') durationMinutes = 480; // 8 ساعات
+
+                        const aptEndTime = new Date(aptDateTime.getTime() + (durationMinutes * 60 * 1000));
+
+                        // إذا انتهى وقت الموعد، يتم إضافته لقائمة الحذف
+                        if (now > aptEndTime) {
+                            expiredIds.push(apt.id);
+                        } else {
+                            activeApts.push(apt);
+                        }
+                    });
+
+                    // حذف المواعيد المنتهية من قاعدة بيانات سحابياً في الخلفية
+                    if (expiredIds.length > 0) {
+                        await supabaseClient
+                            .from('manager_appointments')
+                            .delete()
+                            .in('id', expiredIds);
+                    }
+                }
+
+                // ترتيب المواعيد تصاعدياً (الأقرب/الأحدث زمنياً يظهر في الأعلى)
+                activeApts.sort((a, b) => {
+                    const timeA = new Date(`${a.apt_date}T${a.apt_time}`);
+                    const timeB = new Date(`${b.apt_date}T${b.apt_time}`);
+                    return timeA - timeB;
+                });
+
+                globalAppointmentsCache = activeApts;
                 renderAppointments(globalAppointmentsCache);
             } catch (err) {
                 tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">خطأ في تحميل المواعيد: ${err.message}</td></tr>`;
@@ -1188,7 +1226,7 @@
             tbody.innerHTML = '';
 
             if (!apts || apts.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">لا توجد مواعيد مجدولة حالياً.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">لا توجد مواعيد قادمة مجدولة حالياً.</td></tr>';
                 return;
             }
 
@@ -1232,7 +1270,7 @@
                 const { error } = await supabaseClient.from('manager_appointments').insert([payload]);
                 if (error) throw error;
 
-                alert('تم حفظ الموعد وتفعيل التنبيه بنجاح!');
+                alert('تم حفظ الموعد وترتيبه في الجدول بنجاح!');
                 document.getElementById('appointmentForm').reset();
                 loadAppointments();
             } catch (err) {
