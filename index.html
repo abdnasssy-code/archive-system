@@ -500,7 +500,7 @@
         .btn-pdf { background: #0284c7; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
 
-        /* ================= ألوان أسطر الحالات بالأرشيف ================= -->
+        /* ================= ألوان أسطر الحالات بالأرشيف ================= */
         tr.status-waiting { background-color: #fef9c3 !important; }
         tr.status-waiting td { background-color: #fef9c3 !important; color: #713f12 !important; border-bottom: 1px solid #fef08a !important; }
 
@@ -513,11 +513,27 @@
         tr.status-rejected { background-color: #fee2e2 !important; }
         tr.status-rejected td { background-color: #fee2e2 !important; color: #991b1b !important; border-bottom: 1px solid #fca5a5 !important; }
 
+        /* ================= تثبيت حجم شعار وزارة الدفاع بدقة ================= */
         .official-emblem-img-container {
-            width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
-            border: 2px solid #d4af37; display: flex; align-items: center; justify-content: center; background: #050d1a;
+            width: 52px !important;
+            height: 52px !important;
+            min-width: 52px !important;
+            min-height: 52px !important;
+            max-width: 52px !important;
+            max-height: 52px !important;
+            border-radius: 50% !important;
+            overflow: hidden !important;
+            border: 2px solid #d4af37 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #050d1a !important;
         }
-        .ministry-logo-img { width: 100%; height: 100%; object-fit: cover; }
+        .ministry-logo-img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
 
         .tab-btn-appointments {
             background: rgba(212, 175, 55, 0.1) !important;
@@ -1159,7 +1175,6 @@
             }
         });
 
-        // جلب وتنظيف المواعيد التلقائي (الأحدث/الأقرب بالأعلى، وحذف المنتهية تلقائياً)
         async function loadAppointments() {
             if (!currentUser || currentUser.role !== 'admin') return;
             const tbody = document.getElementById('appointmentsTableBody');
@@ -1176,21 +1191,18 @@
                 let activeApts = [];
                 let expiredIds = [];
 
-                // فحص المواعيد وحذف المنتهية منها تلقائياً
                 if (data) {
                     data.forEach(apt => {
                         const aptDateTime = new Date(`${apt.apt_date}T${apt.apt_time}`);
                         
-                        // احتساب وقت انتهاء الموعد بناءً على المدة المحددة
-                        let durationMinutes = 60; // افتراضي ساعة
+                        let durationMinutes = 60;
                         if (apt.apt_duration === '30 دقيقة') durationMinutes = 30;
                         else if (apt.apt_duration === 'ساعة ونصف') durationMinutes = 90;
                         else if (apt.apt_duration === 'ساعتان') durationMinutes = 120;
-                        else if (apt.apt_duration === 'جلسة مفتوحة') durationMinutes = 480; // 8 ساعات
+                        else if (apt.apt_duration === 'جلسة مفتوحة') durationMinutes = 480;
 
                         const aptEndTime = new Date(aptDateTime.getTime() + (durationMinutes * 60 * 1000));
 
-                        // إذا انتهى وقت الموعد، يتم إضافته لقائمة الحذف
                         if (now > aptEndTime) {
                             expiredIds.push(apt.id);
                         } else {
@@ -1198,7 +1210,6 @@
                         }
                     });
 
-                    // حذف المواعيد المنتهية من قاعدة بيانات سحابياً في الخلفية
                     if (expiredIds.length > 0) {
                         await supabaseClient
                             .from('manager_appointments')
@@ -1207,7 +1218,6 @@
                     }
                 }
 
-                // ترتيب المواعيد تصاعدياً (الأقرب/الأحدث زمنياً يظهر في الأعلى)
                 activeApts.sort((a, b) => {
                     const timeA = new Date(`${a.apt_date}T${a.apt_time}`);
                     const timeB = new Date(`${b.apt_date}T${b.apt_time}`);
