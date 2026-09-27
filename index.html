@@ -152,7 +152,6 @@
                                 <div class="input-group">
                                     <label for="mail_number">رقم الكتاب / المعاملة *</label>
                                     <input type="text" id="mail_number" name="mail_number" required placeholder="أدخل رقم الكتاب (مثال: 105 أو 452/ش.ف.إ)">
-                                    <!-- ملاحظة إظهار آخر رقم بريد تم توثيقه -->
                                     <div id="lastMailNotice" style="margin-top: 6px; font-size: 12px; font-weight: bold; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; padding: 6px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
                                         📌 آخر رقم بريد تم تسجيله: <span id="lastMailNumValue" style="color: #0369a1;">جاري التحميل...</span>
                                     </div>
@@ -216,7 +215,7 @@
                                         <input type="file" id="camera_file" accept="image/*" capture="environment" style="display: none;">
                                     </div>
                                     <div id="cameraStatusMsg" style="margin-top: 6px; font-size: 12px; font-weight: bold; color: #16a34a; display: none;">
-                                        ✅ تم التقاط الصورة بنجاح وجاهزة للحفظ السحابي.
+                                        ✅ تم التقاط الصورة بنجاح وجاهزة للحفظ.
                                     </div>
                                 </div>
 
@@ -664,7 +663,7 @@
                 capturedCameraFile = e.target.files[0];
                 document.getElementById('pdf_file').value = '';
                 document.getElementById('cameraStatusMsg').style.display = 'block';
-                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة بنجاح وجاهزة للحفظ.`;
+                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة بنجاح (${capturedCameraFile.name || 'كاميرا الهاتف'}).`;
             }
         });
 
@@ -793,9 +792,7 @@
             const iframe = document.getElementById('pdfFrame');
             const img = document.getElementById('imgFrame');
 
-            // فحص امتداد الرابط أو كونه صورة
-            if (url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || url.includes('image') || url.includes('supabase.co/storage')) {
-                // افتراض أن الملفات المرفوعة عبر الكاميرا هي صور
+            if (url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || url.includes('image') || url.includes('storage/v1/object/public')) {
                 iframe.style.display = 'none';
                 img.style.display = 'block';
                 img.src = url;
@@ -936,10 +933,10 @@
                     tr.classList.add('status-waiting');
                 }
 
-                // إصلاح زر المرفق ليتعرف تلقائياً على الصور (الكاميرا) أو الـ PDF
+                // عرض زر المرفق بغض النظر عن الصيغة
                 let attachBtnHtml = '-';
-                if (mail.pdf_url) {
-                    const isImg = mail.pdf_url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || mail.pdf_url.includes('image');
+                if (mail.pdf_url && mail.pdf_url.trim() !== '') {
+                    const isImg = mail.pdf_url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || mail.pdf_url.includes('image') || mail.pdf_url.includes('storage');
                     const btnLabel = isImg ? '🖼️ معاينة الصورة' : '📄 معاينة PDF';
                     attachBtnHtml = `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">${btnLabel}</button>`;
                 }
@@ -1058,13 +1055,13 @@
             }
         }
 
-        // الحفظ ورفع المرفق (PDF أو صورة الكاميرا)
+        // عملية الحفظ ورفع المرفق مع تتبع الأخطاء بدقة
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             const originalText = btn.innerText;
             btn.disabled = true;
-            btn.innerText = 'جاري الحفظ والتحقق...';
+            btn.innerText = 'جاري الحفظ ورفع المرفق...';
 
             const mailNumVal = document.getElementById('mail_number').value.trim();
 
@@ -1098,15 +1095,25 @@
 
                 if (fileToUpload) {
                     const fileExt = fileToUpload.name ? fileToUpload.name.split('.').pop() : 'jpg';
-                    const fileName = `${Date.now()}.${fileExt}`;
+                    const fileName = `mail_${Date.now()}.${fileExt}`;
+                    
                     const { data: storageData, error: storageErr } = await supabaseClient.storage
                         .from('pdf_files')
                         .upload(fileName, fileToUpload);
 
-                    if (!storageErr && storageData) {
+                    if (storageErr) {
+                        console.error("خطأ رفع التخزين السحابي:", storageErr);
+                        alert('فشل رفع الملف للسحابة: ' + storageErr.message);
+                        btn.disabled = false;
+                        btn.innerText = originalText;
+                        return;
+                    }
+
+                    if (storageData) {
                         const { data: publicUrlData } = supabaseClient.storage
                             .from('pdf_files')
                             .getPublicUrl(fileName);
+                        
                         pdfUrl = publicUrlData.publicUrl;
                     }
                 } else if (editingMailId) {
@@ -1135,19 +1142,19 @@
                         .eq('id', editingMailId);
 
                     if (error) throw error;
-                    alert('تم تحديث بيانات المعاملة بنجاح!');
+                    alert('تم تحديث بيانات المعاملة والمرفق بنجاح!');
                 } else {
                     mailPayload.created_at = new Date();
                     const { error } = await supabaseClient.from('military_mails').insert([mailPayload]);
                     if (error) throw error;
-                    alert('تم حفظ وتوثيق المعاملة بنجاح!');
+                    alert('تم حفظ وتوثيق المعاملة والمرفق بنجاح!');
                 }
 
                 resetMailForm();
                 fetchLastMailNumber();
                 if (currentUser && currentUser.role === 'admin') loadMails();
             } catch (err) {
-                alert('حدث خطأ أثناء حفظ الكتاب: ' + err.message);
+                alert('حدث خطأ غير متوقع أثناء الحفظ: ' + err.message);
             } finally {
                 btn.disabled = false;
             }
