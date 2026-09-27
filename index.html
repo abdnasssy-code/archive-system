@@ -979,6 +979,90 @@
         function printReport() {
             window.print();
         }
+        <script>
+    // === 1. إعدادات اتصال Supabase ===
+    const SUPABASE_URL = 'ضع_رابط_قاعدة_بيانات_سوبابيس_هنا';
+    const SUPABASE_ANON_KEY = 'ضع_مفتاح_الـ_anon_key_هنا';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let ACCOUNTS = { visitorPass: 'user123' };
+    let currentUser = null;
+    let alertInterval = null;
+
+    // جلب كلمات المرور السحابية
+    async function fetchSystemPasswords() {
+        try {
+            const { data } = await supabaseClient.from('system_settings').select('*').single();
+            if (data && data.visitor_pass) ACCOUNTS.visitorPass = data.visitor_pass;
+        } catch (e) {}
+    }
+
+    // === 2. تسجيل الدخول المطور بالحماية السحابية ===
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const username = document.getElementById('loginUser').value.trim();
+        const password = document.getElementById('loginPass').value.trim();
+        const errorEl = document.getElementById('loginError');
+        errorEl.innerText = 'جاري التحقق من الصلاحيات...';
+
+        // أ) محاولة دخول المدير عبر مصادقة Supabase المشفرة
+        const adminEmail = 'admin@college.mil'; 
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: adminEmail,
+            password: password
+        });
+
+        if (!authError && authData.session) {
+            currentUser = { username: username || 'المدير العام', role: 'admin' };
+            
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            if(document.getElementById('userInfoDisplay')) {
+                document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} (مدير النظام - حماية سحابية)`;
+            }
+
+            if (typeof applyPermissionsUI === 'function') applyPermissionsUI();
+            if (typeof loadMails === 'function') loadMails();
+            if (typeof loadAppointments === 'function') loadAppointments();
+
+            if(alertInterval) clearInterval(alertInterval);
+            if (typeof checkUpcomingAppointments === 'function') {
+                alertInterval = setInterval(checkUpcomingAppointments, 30000);
+            }
+            return;
+        }
+
+        // ب) دخول الزائر
+        await fetchSystemPasswords();
+        if (password === ACCOUNTS.visitorPass) {
+            await supabaseClient.auth.signOut(); // تقييد الصلاحيات
+            currentUser = { username: username || 'زائر', role: 'visitor' };
+
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            if(document.getElementById('userInfoDisplay')) {
+                document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} (مُدخل بريد - إضافة بريد فقط)`;
+            }
+
+            if (typeof applyPermissionsUI === 'function') applyPermissionsUI();
+            if (typeof loadMails === 'function') loadMails();
+            return;
+        }
+
+        errorEl.innerText = 'اسم المستخدم أو كلمة المرور غير صحيحة!';
+    });
+
+    // === 3. تسجيل الخروج ===
+    async function logoutSystem() {
+        await supabaseClient.auth.signOut();
+        currentUser = null;
+        if(alertInterval) clearInterval(alertInterval);
+        document.getElementById('appContainer').style.display = 'none';
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('loginForm').reset();
+        document.getElementById('loginError').innerText = '';
+    }
+
     </script>
 </body>
 </html>
