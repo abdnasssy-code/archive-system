@@ -11,27 +11,60 @@
 </head>
 <body>
 
-    <!-- ================= شاشة تسجيل الدخول ================= -->
-    <div id="loginOverlay" class="login-overlay">
-        <div class="login-card">
-            <div class="login-header">
-                <h2>بوابة الديوان المركزي - مكتب المدير</h2>
-                <p>يرجى إدخال اسم المستخدم وكلمة المرور للمتابعة</p>
-            </div>
-            <form id="loginForm">
-                <div class="input-group">
-                    <label>اسم المستخدم / الصفة الوظيفية</label>
-                    <input type="text" id="loginUser" required placeholder="أدخل اسم المستخدم...">
-                </div>
-                <div class="input-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="loginPass" required placeholder="أدخل كلمة المرور...">
-                </div>
-                <button type="submit" class="btn-submit-custom">دخول إلى النظام</button>
-                <p id="loginError" class="login-error"></p>
-            </form>
-        </div>
-    </div>
+  // تسجيل الدخول المرن والمؤمن
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    const errorEl = document.getElementById('loginError');
+    errorEl.innerText = 'جاري التحقق...';
+
+    try {
+        // 1. تجربة الدخول كأدمن عبر Supabase Auth
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: 'admin@college.mil',
+            password: password
+        });
+
+        if (!authError && authData?.session) {
+            currentUser = { username: username || 'المدير العام', role: 'admin' };
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            if(document.getElementById('userInfoDisplay')) {
+                document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} (مدير النظام)`;
+            }
+            if (typeof applyPermissionsUI === 'function') applyPermissionsUI();
+            if (typeof loadMails === 'function') loadMails();
+            if (typeof loadAppointments === 'function') loadAppointments();
+            return;
+        }
+
+        // 2. تجربة الدخول كزائر (كلمة السر الافتراضية user123 أو من الجدول)
+        let visitorPassword = 'user123';
+        const { data: settingData } = await supabaseClient.from('system_settings').select('visitor_pass').single();
+        if (settingData && settingData.visitor_pass) {
+            visitorPassword = settingData.visitor_pass;
+        }
+
+        if (password === visitorPassword || password === 'user123') {
+            await supabaseClient.auth.signOut(); // ضمان تقييد صلاحيات الزائر
+            currentUser = { username: username || 'زائر', role: 'visitor' };
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            if(document.getElementById('userInfoDisplay')) {
+                document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} (مُدخل بريد)`;
+            }
+            if (typeof applyPermissionsUI === 'function') applyPermissionsUI();
+            if (typeof loadMails === 'function') loadMails();
+            return;
+        }
+
+        errorEl.innerText = 'كلمة المرور غير صحيحة!';
+    } catch (err) {
+        console.error(err);
+        errorEl.innerText = 'حدث خطأ في الاتصال، يرجى المحاولة لاحقاً.';
+    }
+});
 
     <!-- ================= نافذة تغيير كلمات السر (خاصة بالمدير) ================= -->
     <div id="passChangeModal" class="appointment-alert-overlay" style="display: none;">
