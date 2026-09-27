@@ -90,7 +90,7 @@
     <div id="pdfPreviewModal" class="appointment-alert-overlay" style="display: none;">
         <div class="pdf-modal-card">
             <div class="pdf-modal-header">
-                <h3>📄 معاينة الكتاب / المرفق الرسمي</h3>
+                <h3>📄 معاينة الكتاب / المرفق الرسمي (رابط مؤقت آمن)</h3>
                 <button type="button" onclick="closePdfModal()" class="btn-close-custom">✕ إغلاق</button>
             </div>
             <div class="pdf-modal-body">
@@ -144,7 +144,7 @@
                 <div class="form-card-container">
                     <div class="panel-header-custom">
                         <h2 id="formHeaderTitle">تسجيل معاملة أو بريد رسمي جديد</h2>
-                        <p id="formHeaderDesc">توثيق الكتب الواردة والصادرة والداخلية لحفظها في الأرشيف السحابي مع تتبع هوية المُدخل</p>
+                        <p id="formHeaderDesc">توثيق الكتب الواردة والصادرة والداخلية لحفظها في الأرشيف السحابي مع ضغط الصور تلقائياً وتتبع هوية المُدخل</p>
                     </div>
                     <div class="panel-body-custom">
                         <form id="mailForm">
@@ -205,7 +205,7 @@
                                 
                                 <!-- حقل المرفقات: PDF أو التقاط صورة بالكاميرا -->
                                 <div class="input-group full-width">
-                                    <label>إرفاق نسخة PDF (مستند رسمي) أو التقاط صورة بالكاميرا <small style="color:#64748b;" id="pdfNotice">(مسموح حصرياً بصيغ PDF أو صور)</small></label>
+                                    <label>إرفاق نسخة PDF (مستند رسمي) أو التقاط صورة بالكاميرا <small style="color:#64748b;" id="pdfNotice">(يتم ضغط الصور تلقائياً لتوفير المساحة)</small></label>
                                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
                                         <input type="file" id="pdf_file" name="pdf_file" accept=".pdf,application/pdf" class="file-input" style="flex: 1; min-width: 220px;">
                                         
@@ -215,7 +215,7 @@
                                         <input type="file" id="camera_file" accept="image/*" capture="environment" style="display: none;">
                                     </div>
                                     <div id="cameraStatusMsg" style="margin-top: 6px; font-size: 12px; font-weight: bold; color: #16a34a; display: none;">
-                                        ✅ تم التقاط الصورة بنجاح وجاهزة للحفظ.
+                                        ✅ تم التقاط الصورة بنجاح وجاهزة للضغط والرفع.
                                     </div>
                                 </div>
 
@@ -299,7 +299,7 @@
                                     <th>المرسل ← المستقبل</th>
                                     <th>الحالة والسرية</th>
                                     <th>المُدخل (المسؤول)</th>
-                                    <th>المرفق</th>
+                                    <th>المرفق (رابط آمن)</th>
                                     <th id="thActionHeader">إدارة</th>
                                 </tr>
                             </thead>
@@ -544,7 +544,7 @@
         }
     </style>
 
-    <!-- ================= السكربت البرمجي للنظام ================= -->
+    <!-- ================= السكربت البرمجي للنظام المدمج (ضغط الصور + الروابط المؤقتة) ================= -->
     <script>
         const SUPABASE_URL = 'https://rzlpuhabircpnmmwbbzo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bHB1aGFiaXJjcG5tbXdiYnpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjQ0OTgsImV4cCI6MjEwNjAwMDQ5OH0.DcP18cHurdmYaLdAK-M_k5i-X4Sq-8lz0wWAr9i3K7U';
@@ -561,7 +561,6 @@
         let globalAppointmentsCache = [];
         let alertInterval = null;
         let editingMailId = null;
-
         let capturedCameraFile = null;
 
         document.getElementById('camera_file').addEventListener('change', function(e) {
@@ -569,7 +568,7 @@
                 capturedCameraFile = e.target.files[0];
                 document.getElementById('pdf_file').value = '';
                 document.getElementById('cameraStatusMsg').style.display = 'block';
-                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة بنجاح وجاهزة للحفظ.`;
+                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة بنجاح وجاهزة للضغط والرفع.`;
             }
         });
 
@@ -579,6 +578,80 @@
                 document.getElementById('cameraStatusMsg').style.display = 'none';
             }
         });
+
+        // 1. دالة ضغط الصور تلقائياً قبل الرفع (تطبق على الصور فقط وتترك الـ PDF دون تغيير)
+        async function compressImageIfNeeded(file, maxWidth = 1200, quality = 0.8) {
+            if (!file || !file.type.startsWith('image/')) {
+                return file;
+            }
+
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob(
+                            (blob) => {
+                                if (!blob) {
+                                    reject(new Error('فشل معالجة وضغط الصورة'));
+                                    return;
+                                }
+                                const compressedFile = new File([blob], file.name, {
+                                    type: 'image/webp',
+                                    lastModified: Date.now(),
+                                });
+                                resolve(compressedFile);
+                            },
+                            'image/webp',
+                            quality
+                        );
+                    };
+                    img.onerror = (error) => reject(error);
+                };
+                reader.onerror = (error) => reject(error);
+            });
+        }
+
+        // 2. دالة استخراج وتوليد رابط مؤقت آمن للملفات المخزنة (صالح لمدة 5 دقائق لضمان المعاينة بسلاسة)
+        async function getSecureSignedUrl(filePathOrUrl) {
+            if (!filePathOrUrl) return '';
+            
+            try {
+                let filePath = filePathOrUrl;
+                // استخراج مسار الملف الفعلي إذا كان رابطاً كاملاً مخزناً
+                if (filePathOrUrl.includes('/pdf_files/')) {
+                    const parts = filePathOrUrl.split('/pdf_files/');
+                    filePath = parts[parts.length - 1];
+                }
+
+                const { data, error } = await supabaseClient.storage
+                    .from('pdf_files')
+                    .createSignedUrl(filePath, 300); // صالح لمدة 300 ثانية (5 دقائق)
+
+                if (error) throw error;
+                return data.signedUrl;
+            } catch (e) {
+                console.warn('تعذر توليد رابط مؤقت، استخدام الرابط المباشر بدلاً منه:', e);
+                return filePathOrUrl;
+            }
+        }
 
         async function fetchSystemPasswords() {
             try {
@@ -692,21 +765,24 @@
             document.getElementById('passChangeModal').style.display = 'none';
         }
 
-        function openPdfModal(url) {
+        // معاينة المرفق عبر توليد رابط مؤقت آمن لحظياً
+        async function openPdfModal(url) {
             if(!url) return;
             const iframe = document.getElementById('pdfFrame');
             const img = document.getElementById('imgFrame');
 
+            // توليد الرابط المؤقت الآمن قبل العرض
+            const secureUrl = await getSecureSignedUrl(url);
             const isPdf = url.toLowerCase().includes('.pdf');
 
             if (isPdf) {
                 img.style.display = 'none';
                 iframe.style.display = 'block';
-                iframe.src = url;
+                iframe.src = secureUrl;
             } else {
                 iframe.style.display = 'none';
                 img.style.display = 'block';
-                img.src = url;
+                img.src = secureUrl;
             }
             document.getElementById('pdfPreviewModal').style.display = 'flex';
         }
@@ -843,7 +919,7 @@
                 let attachBtnHtml = '-';
                 if (mail.pdf_url && mail.pdf_url.trim() !== '') {
                     const isPdf = mail.pdf_url.toLowerCase().includes('.pdf');
-                    const btnLabel = isPdf ? '📄 معاينة PDF' : '🖼️ معاينة الصورة';
+                    const btnLabel = isPdf ? '📄 معاينة PDF الآمنة' : '🖼️ معاينة الصورة المضغوطة';
                     attachBtnHtml = `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">${btnLabel}</button>`;
                 }
 
@@ -937,7 +1013,7 @@
             document.getElementById('mailForm').reset();
             document.getElementById('cameraStatusMsg').style.display = 'none';
             document.getElementById('formHeaderTitle').innerText = 'تسجيل معاملة أو بريد رسمي جديد';
-            document.getElementById('formHeaderDesc').innerText = 'توثيق الكتب الواردة والصادرة والداخلية لحفظها في الأرشيف السحابي مع تتبع هوية المُدخل';
+            document.getElementById('formHeaderDesc').innerText = 'توثيق الكتب الواردة والصادرة والداخلية لحفظها في الأرشيف السحابي مع ضغط الصور تلقائياً وتتبع هوية المُدخل';
             
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف المركزي';
@@ -961,7 +1037,7 @@
             }
         }
 
-        // الحفظ مع فحص برلمجي صارم يرفض ملفات الوورد أو غيرها من الامتدادات غير المصرح بها
+        // الحفظ الرئيسي مع تطبيق الفحص، ضغط الصور تلقائياً، والرفع الآمن
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -977,22 +1053,20 @@
                 fileToUpload = capturedCameraFile;
             }
 
-            // [حماية صارمة جداً]: الفحص البرمجي قبل الرفع لمنع ملفات الوورد أو أي صيغ غير مسموحة
+            // فحص أمني صارم للامتدادات
             if (fileToUpload) {
                 const originalName = fileToUpload.name || '';
                 const fileExt = originalName.split('.').pop().toLowerCase();
-                
-                // قائمة الصيغ المسموحة حصرياً
                 const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
 
                 if (!allowedExtensions.includes(fileExt)) {
-                    alert(`❌ خطأ أمني مرفوض!\nالملف المختار بصيغة (${fileExt.toUpperCase()}) غير مسموح به نهائياً.\nالنظام يقبل فقط ملفات PDF أو الصور الرسمية.`);
-                    return; // إيقاف العملية فورا وعدم الرفع للسحابة
+                    alert(`❌ خطأ أمني مرفوض!\nالملف بصيغة (${fileExt.toUpperCase()}) غير مسموح به نهائياً.\nالنظام يقبل فقط ملفات PDF أو الصور الرسمية.`);
+                    return;
                 }
             }
 
             btn.disabled = true;
-            btn.innerText = 'جاري الحفظ ورفع المرفق الآمن...';
+            btn.innerText = 'جاري ضغط المعالجة ورفع الملف الآمن...';
 
             const mailNumVal = document.getElementById('mail_number').value.trim();
 
@@ -1015,13 +1089,16 @@
                 }
 
                 if (fileToUpload) {
-                    const originalName = fileToUpload.name || 'file.jpg';
+                    // ضغط الصورة تلقائياً إن وجدت قبل الرفع
+                    const processedFile = await compressImageIfNeeded(fileToUpload);
+                    
+                    const originalName = processedFile.name || 'file.jpg';
                     const fileExt = originalName.split('.').pop().toLowerCase();
                     const fileName = `mail_${Date.now()}.${fileExt}`;
                     
                     const { data: storageData, error: storageErr } = await supabaseClient.storage
                         .from('pdf_files')
-                        .upload(fileName, fileToUpload);
+                        .upload(fileName, processedFile);
 
                     if (storageErr) {
                         alert('فشل رفع الملف للسحابة: ' + storageErr.message);
@@ -1063,7 +1140,7 @@
                         .eq('id', editingMailId);
 
                     if (error) throw error;
-                    alert('تم تحديث بيانات المعاملة والمرفق بنجاح!');
+                    alert('تم تحديث بيانات المعاملة والمرفق المضغوط بنجاح!');
                 } else {
                     mailPayload.created_at = new Date();
                     const { error } = await supabaseClient.from('military_mails').insert([mailPayload]);
