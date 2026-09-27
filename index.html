@@ -261,7 +261,7 @@
                             <thead>
                                 <tr>
                                     <th>الرقم / النوع</th>
-                                    <th>الموضوع والإشارة</th>
+                                    <th>الموضوع والإشارة / الخلاصة</th>
                                     <th>المرسل ← المستقبل</th>
                                     <th>الحالة والسرية</th>
                                     <th>المُدخل (المسؤول)</th>
@@ -853,13 +853,16 @@
                 } else if (st === 'تم الرفض') {
                     tr.classList.add('status-rejected');
                 } else {
-                    // بانتظار الرد أومعاملات سابقة قيد الإجراء
                     tr.classList.add('status-waiting');
                 }
 
                 tr.innerHTML = `
                     <td><strong>${mail.mail_number || '-'}</strong><br><small style="opacity: 0.8;">${mail.mail_type || '-'}</small></td>
-                    <td><strong>${mail.subject || '-'}</strong>${mail.reply_to ? `<br><small style="color:#0284c7;">رداً على: ${mail.reply_to}</small>` : ''}</td>
+                    <td>
+                        <strong>${mail.subject || '-'}</strong>
+                        ${mail.reply_to ? `<br><small style="color:#0284c7;">رداً على: ${mail.reply_to}</small>` : ''}
+                        ${mail.summary ? `<br><small style="color:#0369a1; font-weight:bold; display:inline-block; margin-top:3px;">📝 الخلاصة: ${mail.summary}</small>` : ''}
+                    </td>
                     <td>${mail.sender_dept || '-'} ← ${mail.receiver_dept || '-'}</td>
                     <td>
                         <span style="font-weight: bold;">${st}</span>
@@ -891,6 +894,7 @@
             const filtered = globalMailsCache.filter(mail => {
                 const matchSearch = (mail.mail_number || '').toLowerCase().includes(searchVal) ||
                                     (mail.subject || '').toLowerCase().includes(searchVal) ||
+                                    (mail.summary || '').toLowerCase().includes(searchVal) ||
                                     (mail.created_by || '').toLowerCase().includes(searchVal);
                 const matchType = typeVal === 'all' || mail.mail_type === typeVal;
                 const matchStatus = statusVal === 'all' || mail.status === statusVal;
@@ -1174,9 +1178,9 @@
         }
 
         function exportToExcel() {
-            let csv = '\uFEFFالرقم/النوع,الموضوع,المرسل,المستقبل,الحالة,السرية,المُدخل\n';
+            let csv = '\uFEFFالرقم/النوع,الموضوع,الخلاصة,المرسل,المستقبل,الحالة,السرية,المُدخل\n';
             globalMailsCache.forEach(m => {
-                csv += `"${m.mail_number || ''} - ${m.mail_type || ''}","${m.subject || ''}","${m.sender_dept || ''}","${m.receiver_dept || ''}","${m.status || ''}","${m.secrecy_level || ''}","${m.created_by || ''}"\n`;
+                csv += `"${m.mail_number || ''} - ${m.mail_type || ''}","${m.subject || ''}","${m.summary || ''}","${m.sender_dept || ''}","${m.receiver_dept || ''}","${m.status || ''}","${m.secrecy_level || ''}","${m.created_by || ''}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
