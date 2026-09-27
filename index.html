@@ -108,8 +108,8 @@
                 
                 <div class="nav-tabs">
                     <button class="tab-btn active" id="btnFormTab" onclick="switchTab('formTab')">تسجيل كتاب جديد</button>
-                    <button class="tab-btn admin-only" onclick="switchTab('archiveTab')" style="display: none;">أرشيف المعاملات</button>
-                    <button class="tab-btn tab-btn-appointments admin-only" onclick="switchTab('appointmentsTab')" style="display: none;">📅 مواعيد المدير</button>
+                    <button class="tab-btn admin-only" id="btnArchiveTab" onclick="switchTab('archiveTab')" style="display: none;">أرشيف المعاملات</button>
+                    <button class="tab-btn tab-btn-appointments admin-only" id="btnAppointmentsTab" onclick="switchTab('appointmentsTab')" style="display: none;">📅 مواعيد المدير</button>
                     <button class="tab-btn admin-only" onclick="openPassModal()" style="display: none; background: #0369a1; color: white;">⚙️ كلمة السر</button>
                     <button class="tab-btn btn-logout" onclick="logoutSystem()">تسجيل خروج</button>
                 </div>
@@ -129,7 +129,11 @@
                             <div class="form-grid">
                                 <div class="input-group">
                                     <label for="mail_number">رقم الكتاب / المعاملة *</label>
-                                    <input type="text" id="mail_number" name="mail_number" required placeholder="مثال: 452/ش.ف.إ">
+                                    <input type="text" id="mail_number" name="mail_number" required placeholder="أدخل رقم الكتاب (مثال: 105 أو 452/ش.ف.إ)">
+                                    <!-- ملاحظة إظهار آخر رقم بريد تم توثيقه -->
+                                    <div id="lastMailNotice" style="margin-top: 6px; font-size: 12px; font-weight: bold; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; padding: 6px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
+                                        📌 آخر رقم بريد تم تسجيله: <span id="lastMailNumValue" style="color: #0369a1;">جاري التحميل...</span>
+                                    </div>
                                 </div>
                                 <div class="input-group">
                                     <label for="mail_type">نوع المعاملة *</label>
@@ -453,13 +457,23 @@
         .btn-telegram:hover { background: #006699; }
 
         .btn-logout { background: #dc2626 !important; color: white !important; }
-        .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .btn-delete:hover { background: #dc2626; color: white; }
-        .btn-edit { background: #fef08a; color: #854d0e; border: 1px solid #facc15; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; margin-left: 4px; }
+        .btn-edit { background: #fef08a; color: #854d0e; border: 1px solid #facc15; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; margin-left: 4px; }
         .btn-edit:hover { background: #eab308; color: #000; }
-        .btn-pdf { background: #0284c7; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
+        .btn-pdf { background: #0284c7; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
-        
+
+        /* ================= تنسيق تمييز البريد المتأخر (>3 أيام) ================= */
+        tr.late-mail-row {
+            background-color: #fecdd3 !important;
+        }
+        tr.late-mail-row td {
+            background-color: #fecdd3 !important;
+            color: #881337 !important;
+            border-bottom: 1px solid #fda4af !important;
+        }
+
         .official-emblem-img-container {
             width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
             border: 2px solid #d4af37; display: flex; align-items: center; justify-content: center; background: #050d1a;
@@ -533,7 +547,7 @@
             background: #78350f;
         }
 
-        /* ================= قواعد وقوانين الطباعة الرسمية المخصصة ================= */
+        /* ================= قواعد الطباعة الرسمية ================= */
         @media print {
             .login-overlay, 
             .appointment-alert-overlay, 
@@ -585,7 +599,7 @@
         }
     </style>
 
-    <!-- ================= سكربت التشغيل الديناميكي لكلمات السر ================= -->
+    <!-- ================= السكربت البرمجي للنظام ================= -->
     <script>
         const SUPABASE_URL = 'https://rzlpuhabircpnmmwbbzo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bHB1aGFiaXJjcG5tbXdiYnpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjQ0OTgsImV4cCI6MjEwNjAwMDQ5OH0.DcP18cHurdmYaLdAK-M_k5i-X4Sq-8lz0wWAr9i3K7U';
@@ -602,7 +616,7 @@
         let globalMailsCache = [];
         let globalAppointmentsCache = [];
         let alertInterval = null;
-        let editingMailId = null; // متغيّر معرف المعاملة الشغالة للتعديل
+        let editingMailId = null;
 
         // جلب كلمات السر الديناميكية من Supabase
         async function fetchSystemPasswords() {
@@ -622,6 +636,30 @@
             }
         }
         fetchSystemPasswords();
+
+        // دالة جلب وعرض آخر رقم بريد مسجل بالسحابة
+        async function fetchLastMailNumber() {
+            const valSpan = document.getElementById('lastMailNumValue');
+            if (!valSpan) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('military_mails')
+                    .select('mail_number')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0 && data[0].mail_number) {
+                    valSpan.innerText = `${data[0].mail_number}`;
+                } else {
+                    valSpan.innerText = `لا يوجد بريد مسجل بعد`;
+                }
+            } catch (e) {
+                valSpan.innerText = `غير متوفر حالياً`;
+            }
+        }
 
         // تسجيل الدخول
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -648,6 +686,7 @@
             document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} ${roleBadge}`;
 
             applyPermissionsUI();
+            fetchLastMailNumber(); // جلب آخر رقم عند التسجيل
 
             if (currentUser.role === 'admin') {
                 loadMails();
@@ -751,10 +790,15 @@
             }
 
             if(tabId === 'formTab') {
-                const formBtn = document.getElementById('btnFormTab');
-                if(formBtn) formBtn.classList.add('active');
-            } else if(window.event && window.event.target && window.event.target.classList.contains('tab-btn')) {
-                window.event.target.classList.add('active');
+                const btn = document.getElementById('btnFormTab');
+                if(btn) btn.classList.add('active');
+                fetchLastMailNumber(); // تحديث آخر رقم مسجل عند التحويل لتبويب التسجيل
+            } else if(tabId === 'archiveTab') {
+                const btn = document.getElementById('btnArchiveTab');
+                if(btn) btn.classList.add('active');
+            } else if(tabId === 'appointmentsTab') {
+                const btn = document.getElementById('btnAppointmentsTab');
+                if(btn) btn.classList.add('active');
             }
         }
 
@@ -791,25 +835,34 @@
             mails.forEach(mail => {
                 const tr = document.createElement('tr');
                 
-                // التمييز البصري للمعاملات قيد الإجراء المتأخرة (> 3 أيام)
-                let lateStyle = '';
+                let isLate = false;
                 if (mail.status === 'قيد الإجراء' && mail.created_at) {
                     const createdDate = new Date(mail.created_at);
                     const now = new Date();
-                    const diffDays = Math.ceil((now - createdDate) / (1000 * 60 * 60 * 24));
-                    if (diffDays >= 3) lateStyle = 'style="background-color: #fef2f2;"';
+                    const diffHours = (now - createdDate) / (1000 * 60 * 60);
+                    if (diffHours >= 72) {
+                        isLate = true;
+                    }
+                }
+
+                if (isLate) {
+                    tr.classList.add('late-mail-row');
                 }
 
                 tr.innerHTML = `
-                    <td ${lateStyle}><strong>${mail.mail_number || '-'}</strong><br><small style="color:#64748b;">${mail.mail_type || '-'}</small></td>
+                    <td><strong>${mail.mail_number || '-'}</strong><br><small style="color:#64748b;">${mail.mail_type || '-'}</small></td>
                     <td><strong>${mail.subject || '-'}</strong>${mail.reply_to ? `<br><small style="color:#0284c7;">رداً على: ${mail.reply_to}</small>` : ''}</td>
                     <td>${mail.sender_dept || '-'} ← ${mail.receiver_dept || '-'}</td>
-                    <td><span class="badge">${mail.status || 'قيد الإجراء'}</span><br><small style="color:#dc2626;">${mail.secrecy_level || 'عادي'}</small></td>
+                    <td>
+                        <span class="badge">${mail.status || 'قيد الإجراء'}</span>
+                        ${isLate ? '<br><small style="color:#dc2626; font-weight:bold;">⚠️ متأخر (>3 أيام)</small>' : ''}
+                        <br><small style="color:#64748b;">${mail.secrecy_level || 'عادي'}</small>
+                    </td>
                     <td>${mail.created_by || 'غير محدد'}</td>
                     <td>${mail.pdf_url ? `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">📄 معاينة PDF</button>` : '-'}</td>
                     <td>
-                        <button onclick="editMail('${mail.id}')" class="btn-edit">تعديل</button>
-                        <button onclick="deleteMail('${mail.id}')" class="btn-delete">حذف</button>
+                        <button type="button" onclick="editMail('${mail.id}')" class="btn-edit">تعديل</button>
+                        <button type="button" onclick="deleteMail('${mail.id}')" class="btn-delete">حذف</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -841,10 +894,12 @@
             renderMails(filtered);
         }
 
-        // بدء عملية تعديل معاملة
         function editMail(id) {
-            const mail = globalMailsCache.find(m => m.id === id);
-            if (!mail) return;
+            const mail = globalMailsCache.find(m => String(m.id) === String(id));
+            if (!mail) {
+                alert('لم يتم العثور على المعاملة المطلوب تعديلها!');
+                return;
+            }
 
             editingMailId = mail.id;
             document.getElementById('mail_number').value = mail.mail_number || '';
@@ -859,25 +914,31 @@
 
             document.getElementById('formHeaderTitle').innerText = '✏️ تعديل المعاملة الرسمية';
             document.getElementById('formHeaderDesc').innerText = `تعديل بيانات الكتاب رقم (${mail.mail_number}) في الأرشيف المركزي`;
-            document.getElementById('submitBtn').innerText = 'حفظ وتحديث التعديلات في الأرشيف';
-            document.getElementById('submitBtn').style.background = '#eab308';
-            document.getElementById('submitBtn').style.color = '#000';
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerText = 'حفظ وتحديث التعديلات في الأرشيف';
+            submitBtn.style.background = '#eab308';
+            submitBtn.style.color = '#000';
+            
             document.getElementById('cancelEditBtn').style.display = 'inline-block';
 
             switchTab('formTab');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // إلغاء الوضع وإعادة الضبط
         function resetMailForm() {
             editingMailId = null;
             document.getElementById('mailForm').reset();
             document.getElementById('formHeaderTitle').innerText = 'تسجيل معاملة أو بريد رسمي جديد';
             document.getElementById('formHeaderDesc').innerText = 'توثيق الكتب الواردة والصادرة والداخلية لحفظها في الأرشيف السحابي مع تتبع هوية المُدخل';
-            document.getElementById('submitBtn').innerText = 'حفظ وتوثيق المعاملة في الأرشيف المركزي';
-            document.getElementById('submitBtn').style.background = '';
-            document.getElementById('submitBtn').style.color = '';
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف المركزي';
+            submitBtn.style.background = '';
+            submitBtn.style.color = '';
+            
             document.getElementById('cancelEditBtn').style.display = 'none';
+            fetchLastMailNumber();
         }
 
         async function deleteMail(id) {
@@ -885,25 +946,26 @@
             try {
                 const { error } = await supabaseClient.from('military_mails').delete().eq('id', id);
                 if (error) throw error;
-                if(editingMailId === id) resetMailForm();
+                if(String(editingMailId) === String(id)) resetMailForm();
                 loadMails();
+                fetchLastMailNumber();
             } catch (err) {
                 alert('فشل الحذف: ' + err.message);
             }
         }
 
-        // حفظ معاملة جديدة أو تحديث معاملة موجودة مع فحص منع تكرار الرقم
+        // حفظ معاملة جديدة وتحديث الرقم الأخير فوراً
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            const originalBtnText = btn.innerText;
+            const originalText = btn.innerText;
             btn.disabled = true;
-            btn.innerText = 'جاري التحقق والحفظ...';
+            btn.innerText = 'جاري الحفظ والتحقق...';
 
             const mailNumVal = document.getElementById('mail_number').value.trim();
 
             try {
-                // 1. فحص منع تكرار رقم الكتاب قبل الحفظ
+                // 1. فحص منع تكرار رقم الكتاب
                 let checkQuery = supabaseClient
                     .from('military_mails')
                     .select('id')
@@ -917,11 +979,11 @@
                 if (existingNum && existingNum.length > 0) {
                     alert('⚠️ تنبيه: رقم الكتاب / المعاملة مسجل مسبقاً في النظام! لا يمكن تكرار نفس الرقم.');
                     btn.disabled = false;
-                    btn.innerText = originalBtnText;
+                    btn.innerText = originalText;
                     return;
                 }
 
-                // 2. معالجة الملف المرفق
+                // 2. رفع أو الإبقاء على ملف الـ PDF
                 let pdfUrl = null;
                 const fileInput = document.getElementById('pdf_file');
                 if (fileInput.files.length > 0) {
@@ -939,8 +1001,7 @@
                         pdfUrl = publicUrlData.publicUrl;
                     }
                 } else if (editingMailId) {
-                    // الاحتفاظ بالملف المرفق القديم في حال لم يقم بتحميل ملف جديد عند التعديل
-                    const oldMail = globalMailsCache.find(m => m.id === editingMailId);
+                    const oldMail = globalMailsCache.find(m => String(m.id) === String(editingMailId));
                     if (oldMail) pdfUrl = oldMail.pdf_url;
                 }
 
@@ -959,16 +1020,14 @@
                 };
 
                 if (editingMailId) {
-                    // تحديث الكتاب الحالي
                     const { error } = await supabaseClient
                         .from('military_mails')
                         .update(mailPayload)
                         .eq('id', editingMailId);
 
                     if (error) throw error;
-                    alert('تم تحديث وتعديل بيانات المعاملة بنجاح!');
+                    alert('تم تحديث بيانات المعاملة بنجاح!');
                 } else {
-                    // إنشاء كتاب جديد
                     mailPayload.created_at = new Date();
                     const { error } = await supabaseClient.from('military_mails').insert([mailPayload]);
                     if (error) throw error;
@@ -976,6 +1035,7 @@
                 }
 
                 resetMailForm();
+                fetchLastMailNumber(); // تحديث رقم البريد في الملاحظة فوراً
                 if (currentUser && currentUser.role === 'admin') loadMails();
             } catch (err) {
                 alert('حدث خطأ أثناء حفظ الكتاب: ' + err.message);
@@ -1025,7 +1085,7 @@
                     <td>${apt.apt_with}<br><small style="color:#64748b;">${apt.guest_phone || '-'}</small></td>
                     <td>${apt.apt_location || '-'}<br><small>${apt.apt_notes || ''}</small></td>
                     <td><a href="${tgLink}" target="_blank" class="btn-telegram">✈️ إرسال</a></td>
-                    <td><button onclick="deleteAppointment('${apt.id}')" class="btn-delete">حذف</button></td>
+                    <td><button type="button" onclick="deleteAppointment('${apt.id}')" class="btn-delete">حذف</button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1118,7 +1178,6 @@
             link.click();
         }
 
-        // تشغيل الطباعة الرسمية للتقرير
         function printReport() {
             const now = new Date();
             const dateStr = now.toLocaleDateString('ar-SY') + ' - الساعة: ' + now.toLocaleTimeString('ar-SY');
