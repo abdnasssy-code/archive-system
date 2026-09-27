@@ -11,6 +11,14 @@
 </head>
 <body>
 
+    <!-- ================= ترويسة التقرير الرسمي المطبوع (تظهر عند الطباعة فقط) ================= -->
+    <div class="print-header" style="display: none;">
+        <h3 style="margin: 0 0 5px 0; font-size: 18px; color: #000;">الجمهورية العربية السورية - وزارة الدفاع</h3>
+        <h4 style="margin: 0 0 5px 0; font-size: 16px; color: #000;">إدارة التدريب - كلية الشؤون الفنية والإدارية</h4>
+        <h5 style="margin: 5px 0 10px 0; font-size: 14px; color: #333;">تقرير بيان وحالة أرشيف المعاملات والبريد الرسمي</h5>
+        <p id="printDateDisplay" style="margin: 0; font-size: 12px; color: #555;"></p>
+    </div>
+
     <!-- ================= شاشة تسجيل الدخول ================= -->
     <div id="loginOverlay" class="login-overlay">
         <div class="login-card">
@@ -260,6 +268,18 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- تذييل التوقيعات المخصص للطباعة -->
+                <div class="print-footer" style="display: none;">
+                    <div style="text-align: center;">
+                        <p style="margin-bottom: 40px; font-weight: bold;">مسؤول الديوان والتوثيق</p>
+                        <p>التوقيع: ............................</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <p style="margin-bottom: 40px; font-weight: bold;">يعتمد / مدير كلية الشؤون الفنية والإدارية</p>
+                        <p>التوقيع والختم: ............................</p>
+                    </div>
+                </div>
             </div>
 
             <!-- ================= تبويب مواعيد وجدولة المدير (للأدمن فقط) ================= -->
@@ -374,7 +394,7 @@
         .appointment-alert-card h3 { color: #dc2626; margin-top: 0; }
         .appointment-alert-card p { color: #334155; font-size: 15px; line-height: 1.6; }
 
-        /* تنسيقات نافذة معاينة PDF المنبثقة */
+        /* نافذة معاينة PDF */
         .pdf-modal-card {
             background: #ffffff;
             width: 90%;
@@ -510,17 +530,59 @@
             background: #78350f;
         }
 
-        /* الطباعة العسكرية الرسمية */
+        /* ================= قواعد وقوانين الطباعة الرسمية المخصصة ================= */
         @media print {
-            .login-overlay, .appointment-alert-overlay, .app-header, .controls-panel, .action-buttons-group, .btn-delete, .btn-pdf, .nav-tabs, button {
+            /* إخفاء شاشات الدخول، الواجهات العليا، التبويبات، والنوافظ المنبثقة */
+            .login-overlay, 
+            .appointment-alert-overlay, 
+            .app-header, 
+            .controls-panel, 
+            .action-buttons-group, 
+            #formTab, 
+            #appointmentsTab, 
+            .nav-tabs, 
+            button, 
+            .btn-delete, 
+            .btn-pdf {
                 display: none !important;
             }
-            body { background: white !important; font-family: 'Segoe UI', Tahoma, sans-serif; color: #000; }
-            #appContainer { display: block !important; }
-            .tab-content { display: block !important; }
-            table { width: 100% !important; border-collapse: collapse !important; margin-top: 20px; }
-            th, td { border: 1px solid #000 !important; padding: 8px !important; text-align: center !important; color: #000 !important; }
-            th { background-color: #f1f5f9 !important; }
+
+            /* إظهار حاوية الأرشيف والتقرير فقط */
+            #appContainer, #archiveTab {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* إظهار الترويسة والتذييل المخصصين للطباعة الرسمية */
+            .print-header {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+            }
+
+            .print-footer {
+                display: flex !important;
+                justify-content: space-between;
+                margin-top: 50px;
+                padding-top: 20px;
+            }
+
+            /* إخفاء العمود الأخير (عمود إدارة - زر الحذف والمعاينة) من الجدول أثناء الطباعة */
+            #thActionHeader, 
+            #mailsTable td:last-child {
+                display: none !important;
+            }
+
+            /* ضبط خلفية الصفحة والجداول للطباعة على الورق */
+            body { background: white !important; color: #000 !important; font-family: 'Segoe UI', Tahoma, sans-serif; }
+            .archive-panel { border: none !important; box-shadow: none !important; padding: 0 !important; }
+            table { width: 100% !important; border-collapse: collapse !important; margin-top: 15px; }
+            th, td { border: 1px solid #000 !important; padding: 8px !important; text-align: center !important; color: #000 !important; font-size: 11pt; }
+            th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
         }
     </style>
 
@@ -972,7 +1034,11 @@
             link.click();
         }
 
+        // تشغيل الطباعة الرسمية للتقرير
         function printReport() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-SY') + ' - الساعة: ' + now.toLocaleTimeString('ar-SY');
+            document.getElementById('printDateDisplay').innerText = 'تاريخ استخراج التقرير: ' + dateStr;
             window.print();
         }
     </script>
