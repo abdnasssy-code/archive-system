@@ -18,38 +18,10 @@
         .card { border-radius: 12px; border: 1px solid #e2e8f0; }
         .nav-pills .nav-link { font-weight: 600; color: #475569; }
         .nav-pills .nav-link.active { background-color: #0d6efd; color: white; font-weight: bold; }
-        
-        /* التمييز البصري للمعاملات المتأخرة */
-        .row-late { background-color: #fffedb !important; }
-        .badge-late { background-color: #dc3545; color: white; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-
-        /* تنسيق النموذج المطبوع العسكري الرسمى */
-        .print-only-header, .print-footer { display: none; }
-        @media print {
-            .no-print, .login-overlay, .app-header, .nav-pills, .btn, .admin-only, .dataTables_filter { display: none !important; }
-            .print-only-header { display: block !important; margin-bottom: 25px; text-align: center; }
-            .print-footer { display: block !important; margin-top: 60px; }
-            body { background: white !important; font-size: 11pt; color: #000; }
-            .card { border: none !important; box-shadow: none !important; }
-            .table { border: 1px solid #000 !important; width: 100% !important; }
-            .table th, .table td { border: 1px solid #000 !important; color: #000 !important; padding: 8px !important; }
-            .badge { border: 1px solid #000 !important; color: #000 !important; background: transparent !important; }
-        }
+        .table hover tbody tr:hover { background-color: #f8fafc; }
     </style>
 </head>
 <body>
-
-    <!-- الترويسة المخصصة للطباعة العسكرية الرسمية -->
-    <div class="print-only-header">
-        <h5 class="fw-bold mb-1">الجمهورية العربية السورية</h5>
-        <h5 class="fw-bold mb-1">وزارة الدفاع</h5>
-        <h6 class="fw-bold mb-3">كلية الشؤون الفنية والإدارية - الديوان العام</h6>
-        <div class="d-flex justify-content-between text-muted small border-bottom pb-2">
-            <span>تقرير الأرشيف والمعاملات الرسمية</span>
-            <span id="printDateDisplay">التاريخ: </span>
-        </div>
-    </div>
 
     <!-- شاشة تسجيل الدخول -->
     <div id="loginOverlay" class="login-overlay">
@@ -78,7 +50,7 @@
     <div id="appContainer" class="container py-4" style="display: none;">
         
         <!-- رأس الصفحة -->
-        <div class="app-header d-flex justify-content-between align-items-center mb-4 no-print">
+        <div class="app-header d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h3 class="fw-bold text-dark m-0"><i class="fa-solid fa-building-columns text-primary me-2"></i> منظومة الكلية الرقمية</h3>
                 <small id="userInfoDisplay" class="text-muted fw-semibold"></small>
@@ -94,7 +66,7 @@
         </div>
 
         <!-- تبويبات النظام -->
-        <ul class="nav nav-pills mb-4 no-print" id="mainTabs" role="tablist">
+        <ul class="nav nav-pills mb-4" id="mainTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active me-2" id="mails-tab" data-bs-toggle="pill" data-bs-target="#mailsSection" type="button"><i class="fa-solid fa-folder-open me-2"></i> أرشيف المعاملات</button>
             </li>
@@ -107,36 +79,13 @@
             <!-- قسم أرشيف المعاملات -->
             <div class="tab-pane fade show active" id="mailsSection">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                         <h5 class="m-0 fw-bold text-primary"><i class="fa-solid fa-list me-2"></i> المعاملات والكتب الرسمية</h5>
-                        <div class="d-flex gap-2 no-print">
-                            <button class="btn btn-outline-dark btn-sm fw-bold px-3" onclick="triggerOfficialPrint()">
-                                <i class="fa-solid fa-print me-1"></i> طباعة تقرير رسمي
-                            </button>
-                            <button class="btn btn-primary btn-sm fw-bold px-3" data-bs-toggle="modal" data-bs-target="#addMailModal">
-                                <i class="fa-solid fa-plus me-1"></i> إضافة معاملة جديدة
-                            </button>
-                        </div>
+                        <button class="btn btn-primary btn-sm fw-bold px-3" data-bs-toggle="modal" data-bs-target="#addMailModal">
+                            <i class="fa-solid fa-plus me-1"></i> إضافة معاملة جديدة
+                        </button>
                     </div>
                     <div class="card-body">
-                        <!-- شريط البحث والتصفية السريعة -->
-                        <div class="row g-2 mb-3 no-print">
-                            <div class="col-md-8">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                                    <input type="text" id="mailSearchInput" class="form-control" placeholder="بحث سريع برقم المعاملة، الموضوع، أو الجهة..." onkeyup="filterMails()">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <select id="mailStatusFilter" class="form-select" onchange="filterMails()">
-                                    <option value="ALL">جميع الحالات</option>
-                                    <option value="قيد الإجراء">قيد الإجراء فقط</option>
-                                    <option value="مكتمل">مكتمل فقط</option>
-                                    <option value="LATE">المعاملات المتأخرة / العاجلة</option>
-                                </select>
-                            </div>
-                        </div>
-
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
                                 <thead class="table-light">
@@ -146,8 +95,8 @@
                                         <th>الجهة</th>
                                         <th>التاريخ</th>
                                         <th>الحالة</th>
-                                        <th class="no-print">المرفق</th>
-                                        <th class="admin-only no-print">إجراءات</th>
+                                        <th>المرفق</th>
+                                        <th class="admin-only">إجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="mailsTableBody">
@@ -164,7 +113,7 @@
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                         <h5 class="m-0 fw-bold text-success"><i class="fa-solid fa-clock me-2"></i> جدول مواعيد زوار السيد المدير</h5>
-                        <button class="btn btn-success btn-sm fw-bold px-3 admin-only no-print" data-bs-toggle="modal" data-bs-target="#addAptModal">
+                        <button class="btn btn-success btn-sm fw-bold px-3 admin-only" data-bs-toggle="modal" data-bs-target="#addAptModal">
                             <i class="fa-solid fa-calendar-plus me-1"></i> إضافة موعد جديد
                         </button>
                     </div>
@@ -179,8 +128,8 @@
                                         <th>التاريخ والوقت</th>
                                         <th>المدة</th>
                                         <th>سبب الموعد</th>
-                                        <th class="no-print">تيليجرام مباشر</th>
-                                        <th class="admin-only no-print">إجراءات</th>
+                                        <th>تيليجرام مباشر</th>
+                                        <th class="admin-only">إجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="aptTableBody">
@@ -189,35 +138,6 @@
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- تذييل التوقيع للتقرير المطبوع -->
-        <div class="print-footer">
-            <div class="row text-center">
-                <div class="col-6">
-                    <p class="fw-bold mb-5">رئيس فرع الديوان والتوثيق</p>
-                    <p>التوقيع: ............................</p>
-                </div>
-                <div class="col-6">
-                    <p class="fw-bold mb-5">يعتمد / مدير كلية الشؤون الفنية والإدارية</p>
-                    <p>التوقيع والختم: ............................</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- مودال معاينة PDF المباشرة داخل الموقع -->
-    <div class="modal fade" id="pdfPreviewModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered" style="height: 90vh;">
-            <div class="modal-content h-100">
-                <div class="modal-header py-2 bg-dark text-white">
-                    <h6 class="modal-title fw-bold"><i class="fa-solid fa-file-pdf text-danger me-2"></i> معاينة المرفق الرسمي</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-0 h-100 bg-light">
-                    <iframe id="pdfFrame" src="" style="width:100%; height:100%; border:none;"></iframe>
                 </div>
             </div>
         </div>
@@ -349,10 +269,14 @@
         const SUPABASE_ANON_KEY = 'ضع_مفتاح_الـ_anon_key_هنا';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let ACCOUNTS = { adminPass: 'admin123', visitorPass: 'user123' };
+        // كلمات المرور الافتراضية
+        let ACCOUNTS = {
+            adminPass: 'admin123',
+            visitorPass: 'user123'
+        };
+
         let currentUser = null;
         let alertInterval = null;
-        let rawMailsData = []; // تخزين المعاملات للبحث والتصفية السريعة
 
         // جلب كلمات المرور المحدثة من Supabase
         async function fetchSystemSettings() {
@@ -371,11 +295,15 @@
         function applyPermissionsUI() {
             const adminElements = document.querySelectorAll('.admin-only');
             adminElements.forEach(el => {
-                el.style.display = (currentUser.role === 'admin') ? '' : 'none';
+                if (currentUser.role === 'admin') {
+                    el.style.display = '';
+                } else {
+                    el.style.display = 'none';
+                }
             });
         }
 
-        // تسجيل الدخول المباشر السلس
+        // معالجة تسجيل الدخول المباشر السلس
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('loginUser').value.trim();
@@ -414,107 +342,33 @@
             errorEl.innerText = 'كلمة المرور غير صحيحة!';
         });
 
-        // جلب المعاملات من قاعدة البيانات
+        // جلب المعاملات
         async function loadMails() {
             const { data, error } = await supabaseClient.from('military_mails').select('*').order('created_at', { ascending: false });
-            if (error || !data) {
-                rawMailsData = [];
-            } else {
-                rawMailsData = data;
-            }
-            renderMails(rawMailsData);
-        }
-
-        // عرض جدول المعاملات وتطبيق التأشير البصري للمعاملات المتأخرة (> 3 أيام)
-        function renderMails(mailsList) {
             const tbody = document.getElementById('mailsTableBody');
             tbody.innerHTML = '';
 
-            if (!mailsList || mailsList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">لا توجد معاملات تطابق الخيارات.</td></tr>`;
+            if (error || !data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">لا توجد معاملات مسجلة حالياً.</td></tr>`;
                 return;
             }
 
-            const today = new Date();
-
-            mailsList.forEach(mail => {
-                // احتساب التأخير (إذا كانت قيد الإجراء ومضى عليها أكثر من 3 أيام)
-                let isLate = false;
-                if (mail.date && mail.status !== 'مكتمل') {
-                    const mailDate = new Date(mail.date);
-                    const diffTime = today - mailDate;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    if (diffDays >= 3) isLate = true;
-                }
-
+            data.forEach(mail => {
                 tbody.innerHTML += `
-                    <tr class="${isLate ? 'row-late' : ''}">
+                    <tr>
                         <td class="fw-bold">${mail.mail_number || '-'}</td>
                         <td>${mail.subject || '-'}</td>
                         <td>${mail.sender || '-'}</td>
                         <td>${mail.date || '-'}</td>
-                        <td>
-                            ${isLate ? 
-                                `<span class="badge badge-late"><i class="fa-solid fa-triangle-exclamation me-1"></i> متأخرة / عاجلة</span>` : 
-                                `<span class="badge ${mail.status === 'مكتمل' ? 'bg-success' : 'bg-primary'}">${mail.status || 'قيد الإجراء'}</span>`
-                            }
-                        </td>
-                        <td class="no-print">
-                            ${mail.attachment_url ? 
-                                `<button onclick="openPDFModal('${mail.attachment_url}')" class="btn btn-sm btn-outline-primary fw-bold"><i class="fa-solid fa-file-pdf me-1"></i> معاينة</button>` : 
-                                '-'
-                            }
-                        </td>
-                        <td class="admin-only no-print">
+                        <td><span class="badge bg-primary">${mail.status || 'قيد الإجراء'}</span></td>
+                        <td>${mail.attachment_url ? `<a href="${mail.attachment_url}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-pdf me-1"></i> عرض</a>` : '-'}</td>
+                        <td class="admin-only">
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteMail('${mail.id}')"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
             });
             applyPermissionsUI();
-        }
-
-        // تصفية وبحث المعاملات المباشر
-        function filterMails() {
-            const searchVal = document.getElementById('mailSearchInput').value.toLowerCase();
-            const statusVal = document.getElementById('mailStatusFilter').value;
-            const today = new Date();
-
-            const filtered = rawMailsData.filter(mail => {
-                const matchesSearch = (mail.mail_number || '').toLowerCase().includes(searchVal) ||
-                                      (mail.subject || '').toLowerCase().includes(searchVal) ||
-                                      (mail.sender || '').toLowerCase().includes(searchVal);
-
-                let matchesStatus = true;
-                if (statusVal === 'LATE') {
-                    if (mail.date && mail.status !== 'مكتمل') {
-                        const mailDate = new Date(mail.date);
-                        const diffDays = Math.ceil((today - mailDate) / (1000 * 60 * 60 * 24));
-                        matchesStatus = diffDays >= 3;
-                    } else {
-                        matchesStatus = false;
-                    }
-                } else if (statusVal !== 'ALL') {
-                    matchesStatus = (mail.status || 'قيد الإجراء') === statusVal;
-                }
-
-                return matchesSearch && matchesStatus;
-            });
-
-            renderMails(filtered);
-        }
-
-        // معاينة الـ PDF المباشرة داخل نافذة Modal
-        function openPDFModal(url) {
-            document.getElementById('pdfFrame').src = url;
-            new bootstrap.Modal(document.getElementById('pdfPreviewModal')).show();
-        }
-
-        // تشغيل أمر الطباعة الرسمية بتنسيق عسكري
-        function triggerOfficialPrint() {
-            const now = new Date();
-            document.getElementById('printDateDisplay').innerText = 'التاريخ: ' + now.toLocaleDateString('ar-SY');
-            window.print();
         }
 
         // إضافة معاملة جديدة
@@ -568,12 +422,12 @@
                         <td><span class="badge bg-info text-dark">${apt.apt_date} | ${apt.apt_time}</span></td>
                         <td>${apt.apt_duration || '30 دقيقة'}</td>
                         <td>${apt.reason || '-'}</td>
-                        <td class="no-print">
+                        <td>
                             <button class="btn btn-sm btn-success fw-bold" onclick="sendTelegramDirect('${apt.guest_phone}', '${apt.guest_name}', '${apt.apt_date}', '${apt.apt_time}', '${apt.apt_duration}', '${apt.reason}')">
                                 <i class="fa-brands fa-telegram me-1"></i> إرسال
                             </button>
                         </td>
-                        <td class="admin-only no-print">
+                        <td class="admin-only">
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteApt('${apt.id}')"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
