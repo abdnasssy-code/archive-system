@@ -663,7 +663,7 @@
                 capturedCameraFile = e.target.files[0];
                 document.getElementById('pdf_file').value = '';
                 document.getElementById('cameraStatusMsg').style.display = 'block';
-                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة بنجاح (${capturedCameraFile.name || 'كاميرا الهاتف'}).`;
+                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة بنجاح وجاهزة للحفظ.`;
             }
         });
 
@@ -786,20 +786,23 @@
             document.getElementById('passChangeModal').style.display = 'none';
         }
 
-        // دالة عرض المعاينة للملفات أو صور الكاميرا
+        // دالة عرض المعاينة الدقيقة (تفرقة صحيحة بين ملفات PDF والصور)
         function openPdfModal(url) {
             if(!url) return;
             const iframe = document.getElementById('pdfFrame');
             const img = document.getElementById('imgFrame');
 
-            if (url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || url.includes('image') || url.includes('storage/v1/object/public')) {
-                iframe.style.display = 'none';
-                img.style.display = 'block';
-                img.src = url;
-            } else {
+            // فحص دقيق: هل الرابط يعود لملف PDF أم صورة؟
+            const isPdf = url.toLowerCase().includes('.pdf');
+
+            if (isPdf) {
                 img.style.display = 'none';
                 iframe.style.display = 'block';
                 iframe.src = url;
+            } else {
+                iframe.style.display = 'none';
+                img.style.display = 'block';
+                img.src = url;
             }
             document.getElementById('pdfPreviewModal').style.display = 'flex';
         }
@@ -933,11 +936,11 @@
                     tr.classList.add('status-waiting');
                 }
 
-                // عرض زر المرفق بغض النظر عن الصيغة
+                // التمييز الصحيح لزر المرفق (PDF أو صورة)
                 let attachBtnHtml = '-';
                 if (mail.pdf_url && mail.pdf_url.trim() !== '') {
-                    const isImg = mail.pdf_url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || mail.pdf_url.includes('image') || mail.pdf_url.includes('storage');
-                    const btnLabel = isImg ? '🖼️ معاينة الصورة' : '📄 معاينة PDF';
+                    const isPdf = mail.pdf_url.toLowerCase().includes('.pdf');
+                    const btnLabel = isPdf ? '📄 معاينة PDF' : '🖼️ معاينة الصورة';
                     attachBtnHtml = `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">${btnLabel}</button>`;
                 }
 
@@ -1055,7 +1058,7 @@
             }
         }
 
-        // عملية الحفظ ورفع المرفق مع تتبع الأخطاء بدقة
+        // الحفظ ورفع المرفق (مع الحفاظ على امتداد الملف الحقيقي سواء PDF أو صورة)
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -1094,7 +1097,8 @@
                 }
 
                 if (fileToUpload) {
-                    const fileExt = fileToUpload.name ? fileToUpload.name.split('.').pop() : 'jpg';
+                    const originalName = fileToUpload.name || 'file.jpg';
+                    const fileExt = originalName.split('.').pop().toLowerCase();
                     const fileName = `mail_${Date.now()}.${fileExt}`;
                     
                     const { data: storageData, error: storageErr } = await supabaseClient.storage
