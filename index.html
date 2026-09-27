@@ -33,6 +33,19 @@
         </div>
     </div>
 
+    <!-- ================= نافذة معاينة PDF المنبثقة ================= -->
+    <div id="pdfPreviewModal" class="appointment-alert-overlay" style="display: none;">
+        <div class="pdf-modal-card">
+            <div class="pdf-modal-header">
+                <h3>📄 معاينة الكتاب / المرفق الرسمي</h3>
+                <button type="button" onclick="closePdfModal()" class="btn-close-custom">✕ إغلاق</button>
+            </div>
+            <div class="pdf-modal-body">
+                <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+
     <!-- ================= نافذة تغيير كلمات السر (خاصة بالمدير) ================= -->
     <div id="passChangeModal" class="appointment-alert-overlay" style="display: none;">
         <div class="login-card" style="border-top: 4px solid #0284c7; max-width: 420px;">
@@ -361,6 +374,41 @@
         .appointment-alert-card h3 { color: #dc2626; margin-top: 0; }
         .appointment-alert-card p { color: #334155; font-size: 15px; line-height: 1.6; }
 
+        /* تنسيقات نافذة معاينة PDF المنبثقة */
+        .pdf-modal-card {
+            background: #ffffff;
+            width: 90%;
+            max-width: 950px;
+            height: 85vh;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border-top: 4px solid #0284c7;
+        }
+        .pdf-modal-header {
+            background: #0f172a;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pdf-modal-header h3 { margin: 0; font-size: 16px; color: #38bdf8; }
+        .btn-close-custom {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .btn-close-custom:hover { background: #dc2626; }
+        .pdf-modal-body { flex: 1; background: #f1f5f9; }
+
         .controls-panel {
             background: #ffffff; padding: 15px; border-radius: 8px; margin-bottom: 20px;
             display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
@@ -386,7 +434,7 @@
         .btn-logout { background: #dc2626 !important; color: white !important; }
         .btn-delete { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .btn-delete:hover { background: #dc2626; color: white; }
-        .btn-pdf { background: #0284c7; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-decoration: none; font-weight: bold; display: inline-block; }
+        .btn-pdf { background: #0284c7; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
         
         .official-emblem-img-container {
@@ -461,6 +509,19 @@
         .btn-refresh-appointments:hover {
             background: #78350f;
         }
+
+        /* الطباعة العسكرية الرسمية */
+        @media print {
+            .login-overlay, .appointment-alert-overlay, .app-header, .controls-panel, .action-buttons-group, .btn-delete, .btn-pdf, .nav-tabs, button {
+                display: none !important;
+            }
+            body { background: white !important; font-family: 'Segoe UI', Tahoma, sans-serif; color: #000; }
+            #appContainer { display: block !important; }
+            .tab-content { display: block !important; }
+            table { width: 100% !important; border-collapse: collapse !important; margin-top: 20px; }
+            th, td { border: 1px solid #000 !important; padding: 8px !important; text-align: center !important; color: #000 !important; }
+            th { background-color: #f1f5f9 !important; }
+        }
     </style>
 
     <!-- ================= سكربت التشغيل الديناميكي لكلمات السر ================= -->
@@ -470,7 +531,7 @@
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // القيم الافتراضية المحلية (في حال انقطاع الشبكة)
+        // القيم الافتراضية المحلية
         let ACCOUNTS = {
             adminPass: "admin123",
             visitorPass: "user123"
@@ -481,10 +542,10 @@
         let globalAppointmentsCache = [];
         let alertInterval = null;
 
-        // جلب كلمات السر الديناميكية من Supabase عند تحميل الصفحة
+        // جلب كلمات السر الديناميكية من Supabase
         async function fetchSystemPasswords() {
             try {
-                const { data, error } = await supabaseClient
+                const { data } = await supabaseClient
                     .from('system_settings')
                     .select('*')
                     .eq('id', 1)
@@ -507,7 +568,6 @@
             const password = document.getElementById('loginPass').value.trim();
             const errorEl = document.getElementById('loginError');
 
-            // إعطاء فرصة سريعة لجلب التحديثات
             await fetchSystemPasswords();
 
             if (password === ACCOUNTS.adminPass) {
@@ -546,6 +606,18 @@
 
         function closePassModal() {
             document.getElementById('passChangeModal').style.display = 'none';
+        }
+
+        // فتح وإغلاق نافذة معاينة PDF المنبثقة
+        function openPdfModal(url) {
+            if(!url) return;
+            document.getElementById('pdfFrame').src = url;
+            document.getElementById('pdfPreviewModal').style.display = 'flex';
+        }
+
+        function closePdfModal() {
+            document.getElementById('pdfPreviewModal').style.display = 'none';
+            document.getElementById('pdfFrame').src = '';
         }
 
         document.getElementById('changePassForm').addEventListener('submit', async function(e) {
@@ -607,57 +679,137 @@
         }
 
         function switchTab(tabId) {
-            if (currentUser && currentUser.role !== 'admin' && tabId !== 'formTab') {
-                alert('عذراً، هذه الصفحة مخصصة لمدير النظام فقط.');
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            const targetTab = document.getElementById(tabId);
+            if(targetTab) {
+                targetTab.style.display = 'block';
+            }
+
+            if(window.event && window.event.target && window.event.target.classList.contains('tab-btn')) {
+                window.event.target.classList.add('active');
+            }
+        }
+
+        // ================= إدارة البريد والمعاملات =================
+        async function loadMails() {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-row">جاري جلب المعاملات...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('military_mails')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                globalMailsCache = data || [];
+                renderMails(globalMailsCache);
+                updateStats(globalMailsCache);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">خطأ في جلب البيانات: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderMails(mails) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (!mails || mails.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">لا توجد معاملات مسجلة.</td></tr>';
                 return;
             }
 
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active-tab'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                if(!el.classList.contains('btn-logout')) el.classList.remove('active');
-            });
-
-            const targetTab = document.getElementById(tabId);
-            if (targetTab) {
-                targetTab.classList.add('active-tab');
-            }
-
-            if (tabId === 'archiveTab' && currentUser.role === 'admin') loadMails();
-            if (tabId === 'appointmentsTab' && currentUser.role === 'admin') loadAppointments();
-        }
-
-        // ================= إضافة وتوثيق كتاب بريد جديد =================
-        document.getElementById('mailForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'جاري الحفظ وتوثيق المُدخل...';
-
-            const fileInput = document.getElementById('pdf_file');
-            let pdfUrl = '';
-            let pdfName = 'بدون';
-
-            try {
-                if(fileInput.files && fileInput.files[0]) {
-                    const file = fileInput.files[0];
-                    pdfName = file.name;
-                    const safeFileName = `file_${Date.now()}.pdf`;
-                    const filePath = `archive_pdfs/${safeFileName}`;
-                    
-                    const { error: uploadError } = await supabaseClient.storage
-                        .from('archive_pdfs')
-                        .upload(filePath, file);
-
-                    if(uploadError) throw uploadError;
-
-                    const { data: publicUrlData } = supabaseClient.storage
-                        .from('archive_pdfs')
-                        .getPublicUrl(filePath);
-
-                    pdfUrl = publicUrlData.publicUrl;
+            mails.forEach(mail => {
+                const tr = document.createElement('tr');
+                
+                // التمييز البصري للمعاملات قيد الإجراء المتأخرة (> 3 أيام)
+                let lateStyle = '';
+                if (mail.status === 'قيد الإجراء' && mail.created_at) {
+                    const createdDate = new Date(mail.created_at);
+                    const now = new Date();
+                    const diffDays = Math.ceil((now - createdDate) / (1000 * 60 * 60 * 24));
+                    if (diffDays >= 3) lateStyle = 'style="background-color: #fef2f2;"';
                 }
 
-                const newMail = {
+                tr.innerHTML = `
+                    <td ${lateStyle}><strong>${mail.mail_number || '-'}</strong><br><small style="color:#64748b;">${mail.mail_type || '-'}</small></td>
+                    <td><strong>${mail.subject || '-'}</strong>${mail.reply_to ? `<br><small style="color:#0284c7;">رداً على: ${mail.reply_to}</small>` : ''}</td>
+                    <td>${mail.sender_dept || '-'} ← ${mail.receiver_dept || '-'}</td>
+                    <td><span class="badge">${mail.status || 'قيد الإجراء'}</span><br><small style="color:#dc2626;">${mail.secrecy_level || 'عادي'}</small></td>
+                    <td>${mail.created_by || 'غير محدد'}</td>
+                    <td>${mail.pdf_url ? `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">📄 معاينة PDF</button>` : '-'}</td>
+                    <td><button onclick="deleteMail('${mail.id}')" class="btn-delete">حذف</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStats(mails) {
+            document.getElementById('totalCount').innerText = mails.length;
+            document.getElementById('incomingCount').innerText = mails.filter(m => m.mail_type === 'وارد').length;
+            document.getElementById('outgoingCount').innerText = mails.filter(m => m.mail_type === 'صادر').length;
+            document.getElementById('pendingCount').innerText = mails.filter(m => m.status === 'قيد الإجراء').length;
+        }
+
+        function applyFilters() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const typeVal = document.getElementById('filterType').value;
+            const statusVal = document.getElementById('filterStatus').value;
+
+            const filtered = globalMailsCache.filter(mail => {
+                const matchSearch = (mail.mail_number || '').toLowerCase().includes(searchVal) ||
+                                    (mail.subject || '').toLowerCase().includes(searchVal) ||
+                                    (mail.created_by || '').toLowerCase().includes(searchVal);
+                const matchType = typeVal === 'all' || mail.mail_type === typeVal;
+                const matchStatus = statusVal === 'all' || mail.status === statusVal;
+
+                return matchSearch && matchType && matchStatus;
+            });
+
+            renderMails(filtered);
+        }
+
+        async function deleteMail(id) {
+            if (!confirm('هل أنت تأكد من حذف هذه المعاملة نهائياً من الأرشيف؟')) return;
+            try {
+                const { error } = await supabaseClient.from('military_mails').delete().eq('id', id);
+                if (error) throw error;
+                loadMails();
+            } catch (err) {
+                alert('فشل الحذف: ' + err.message);
+            }
+        }
+
+        // حفظ معاملة جديدة
+        document.getElementById('mailForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = 'جاري التوثيق والحفظ...';
+
+            try {
+                let pdfUrl = null;
+                const fileInput = document.getElementById('pdf_file');
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}.${fileExt}`;
+                    const { data: storageData, error: storageErr } = await supabaseClient.storage
+                        .from('pdf_files')
+                        .upload(fileName, file);
+
+                    if (!storageErr && storageData) {
+                        const { data: publicUrlData } = supabaseClient.storage
+                            .from('pdf_files')
+                            .getPublicUrl(fileName);
+                        pdfUrl = publicUrlData.publicUrl;
+                    }
+                }
+
+                const mailPayload = {
                     mail_number: document.getElementById('mail_number').value,
                     mail_type: document.getElementById('mail_type').value,
                     reply_to: document.getElementById('reply_to').value,
@@ -667,287 +819,141 @@
                     secrecy_level: document.getElementById('secrecy_level').value,
                     status: document.getElementById('status').value,
                     summary: document.getElementById('summary').value,
-                    pdf_name: pdfName,
                     pdf_url: pdfUrl,
-                    created_by: currentUser.username
+                    created_by: currentUser ? currentUser.username : 'مُدخل بريد',
+                    created_at: new Date()
                 };
 
-                const { error: dbError } = await supabaseClient
-                    .from('military_mails')
-                    .insert([newMail]);
+                const { error } = await supabaseClient.from('military_mails').insert([mailPayload]);
+                if (error) throw error;
 
-                if(dbError) throw dbError;
-
-                alert('تم حفظ وتوثيق المعاملة بنجاح باسم المسؤول: ' + currentUser.username);
+                alert('تم حفظ وتوثيق المعاملة بنجاح!');
                 document.getElementById('mailForm').reset();
-
-                if (currentUser.role === 'admin') {
-                    switchTab('archiveTab');
-                }
-            } catch (error) {
-                console.error("خطأ أثناء الحفظ:", error);
-                alert('حدث خطأ أثناء الحفظ: ' + (error.message || error));
+                if (currentUser && currentUser.role === 'admin') loadMails();
+            } catch (err) {
+                alert('حدث خطأ أثناء حفظ الكتاب: ' + err.message);
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف المركزي';
+                btn.disabled = false;
+                btn.innerText = 'حفظ وتوثيق المعاملة في الأرشيف المركزي';
             }
         });
 
-        // ================= إضافة موعد جديد للمدير =================
-        document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            if(currentUser.role !== 'admin') {
-                alert('عذراً، إضافة وتعديل المواعيد متاح فقط للمدير!');
+        // ================= إدارة المواعيد =================
+        async function loadAppointments() {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            const tbody = document.getElementById('appointmentsTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-row">جاري جلب جدول المواعيد...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('manager_appointments')
+                    .select('*')
+                    .order('apt_date', { ascending: true });
+
+                if (error) throw error;
+                globalAppointmentsCache = data || [];
+                renderAppointments(globalAppointmentsCache);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">خطأ في تحميل المواعيد: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderAppointments(apts) {
+            const tbody = document.getElementById('appointmentsTableBody');
+            tbody.innerHTML = '';
+
+            if (!apts || apts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">لا توجد مواعيد مجدولة حالياً.</td></tr>';
                 return;
             }
 
-            const aptBtn = document.getElementById('aptSubmitBtn');
-            aptBtn.disabled = true;
-            aptBtn.innerText = 'جاري حفظ الموعد...';
+            apts.forEach(apt => {
+                const tr = document.createElement('tr');
+                const tgText = `📌 *تنبيه موعد - كلية الشؤون الفنية والإدارية*\n\n📋 *الموضوع:* ${apt.apt_title}\n📅 *التاريخ والوقت:* ${apt.apt_date} | ${apt.apt_time}\n⏳ *المدة:* ${apt.apt_duration || '-'}\n👤 *الضيف:* ${apt.apt_with}\n📞 *الهاتف:* ${apt.guest_phone || '-'}\n📍 *المكان:* ${apt.apt_location || 'مكتب المدير'}`;
+                const tgLink = `https://t.me/share/url?url=${encodeURIComponent(tgText)}`;
+
+                tr.innerHTML = `
+                    <td><strong>${apt.apt_date}</strong><br><small style="color:#0284c7;">${apt.apt_time}</small></td>
+                    <td>${apt.apt_duration || '-'}</td>
+                    <td><strong>${apt.apt_title}</strong></td>
+                    <td>${apt.apt_with}<br><small style="color:#64748b;">${apt.guest_phone || '-'}</small></td>
+                    <td>${apt.apt_location || '-'}<br><small>${apt.apt_notes || ''}</small></td>
+                    <td><a href="${tgLink}" target="_blank" class="btn-telegram">✈️ إرسال</a></td>
+                    <td><button onclick="deleteAppointment('${apt.id}')" class="btn-delete">حذف</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('aptSubmitBtn');
+            btn.disabled = true;
+            btn.innerText = 'جاري الحفظ...';
 
             try {
-                const newApt = {
+                const payload = {
                     apt_title: document.getElementById('apt_title').value,
                     apt_date: document.getElementById('apt_date').value,
                     apt_time: document.getElementById('apt_time').value,
                     apt_duration: document.getElementById('apt_duration').value,
                     apt_with: document.getElementById('apt_with').value,
-                    guest_phone: document.getElementById('guest_phone').value || '',
+                    guest_phone: document.getElementById('guest_phone').value,
                     apt_location: document.getElementById('apt_location').value,
                     apt_notes: document.getElementById('apt_notes').value,
-                    created_by: currentUser.username
+                    notified: false
                 };
 
-                const { error } = await supabaseClient
-                    .from('manager_appointments')
-                    .insert([newApt]);
+                const { error } = await supabaseClient.from('manager_appointments').insert([payload]);
+                if (error) throw error;
 
-                if(error) throw error;
-
-                alert('تمت جدولة الموعد بنجاح وتفعيل التنبيه التلقائي.');
+                alert('تم حفظ الموعد وتفعيل التنبيه بنجاح!');
                 document.getElementById('appointmentForm').reset();
-                document.getElementById('apt_location').value = 'مكتب مدير الكلية';
                 loadAppointments();
-            } catch (error) {
-                alert('فشل حفظ الموعد: ' + error.message);
+            } catch (err) {
+                alert('خطأ في إضافة الموعد: ' + err.message);
             } finally {
-                aptBtn.disabled = false;
-                aptBtn.innerText = 'حفظ الموعد وتفعيل التنبيه المباشر';
+                btn.disabled = false;
+                btn.innerText = 'حفظ الموعد وتفعيل التنبيه المباشر';
             }
         });
 
-        async function loadAppointments() {
-            if (currentUser.role !== 'admin') return;
-            const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري جلب جدول المواعيد...</td></tr>`;
-
-            try {
-                const { data, error } = await supabaseClient
-                    .from('manager_appointments')
-                    .select('*')
-                    .order('apt_date', { ascending: true })
-                    .order('apt_time', { ascending: true });
-
-                if(error) throw error;
-
-                globalAppointmentsCache = data || [];
-                renderAppointmentsTable(globalAppointmentsCache);
-            } catch (error) {
-                console.error("خطأ جلب المواعيد:", error);
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">تعذر جلب المواعيد.</td></tr>`;
-            }
-        }
-
-        function renderAppointmentsTable(appointments) {
-            const tbody = document.getElementById('appointmentsTableBody');
-            tbody.innerHTML = '';
-
-            if(appointments.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row">لا توجد مواعيد مجدولة حالياً.</td></tr>`;
-                return;
-            }
-
-            appointments.forEach(apt => {
-                const duration = (apt && 'apt_duration' in apt && apt.apt_duration) ? apt.apt_duration : 'ساعة كاملة';
-                const phone = (apt && 'guest_phone' in apt && apt.guest_phone) ? apt.guest_phone : 'غير مدخل';
-
-                const tgText = encodeURIComponent(
-                    `📌 *تنبيه بموعد رسمي - كلية الشؤون الفنية والإدارية*\n\n` +
-                    `🗓 *التاريخ:* ${apt.apt_date}\n` +
-                    `⏰ *الوقت:* ${apt.apt_time}\n` +
-                    `⏱ *المدة المتوقعة:* ${duration}\n` +
-                    `📌 *موضوع الموعد:* ${apt.apt_title}\n` +
-                    `👥 *مع:* ${apt.apt_with}\n` +
-                    `📍 *المكان:* ${apt.apt_location || 'مكتب المدير'}\n` +
-                    `📞 *تواصل الضيف:* ${phone}\n` +
-                    `📝 *ملاحظات:* ${apt.apt_notes || 'لا يوجد'}`
-                );
-                const tgShareUrl = `https://t.me/share/url?url=${tgText}`;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong style="color:#b45309;">📅 ${apt.apt_date || 'غير محدد'}</strong><br><span style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px; font-size:11px;">⏰ ${apt.apt_time || ''}</span></td>
-                    <td><span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">⏱️ ${duration}</span></td>
-                    <td><strong>${apt.apt_title}</strong></td>
-                    <td>${apt.apt_with}<br><small style="color:#64748b;">📞 ${phone}</small></td>
-                    <td>
-                        <small style="display:block; color:#0f172a;">📍 ${apt.apt_location || 'مكتب المدير'}</small>
-                        <small style="font-size:11px; color:#475569;">📝 ${apt.apt_notes || 'بدون'}</small>
-                    </td>
-                    <td>
-                        <a href="${tgShareUrl}" target="_blank" class="btn-telegram">✈️ إرسال للتلغرام</a>
-                    </td>
-                    <td><button class="btn-delete" onclick="deleteAppointment(${apt.id})">🗑️ حذف</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
         async function deleteAppointment(id) {
-            if(currentUser.role !== 'admin') return;
-            if(!confirm('هل أنت متأكد من رغبتك في حذف هذا الموعد من جدول المدير؟')) return;
+            if (!confirm('هل أنت تأكد من حذف هذا الموعد؟')) return;
             try {
                 const { error } = await supabaseClient.from('manager_appointments').delete().eq('id', id);
-                if(error) throw error;
+                if (error) throw error;
                 loadAppointments();
-            } catch(e) {
-                alert('فشل الحذف: ' + e.message);
+            } catch (err) {
+                alert('فشل حذف الموعد: ' + err.message);
             }
         }
 
-        async function loadMails() {
-            if (currentUser.role !== 'admin') return;
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = `<tr><td colspan="7" class="loading-row">جاري مزامنة بيانات الأرشيف...</td></tr>`;
-
+        async function checkUpcomingAppointments() {
+            if (!currentUser || currentUser.role !== 'admin') return;
             try {
-                const { data, error } = await supabaseClient
-                    .from('military_mails')
+                const { data } = await supabaseClient
+                    .from('manager_appointments')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .eq('notified', false);
 
-                if(error) throw error;
+                if (!data) return;
+                const now = new Date();
 
-                globalMailsCache = data || [];
-                updateCounters(globalMailsCache);
-                applyFilters();
-            } catch (error) {
-                console.error("خطأ جلب المعاملات:", error);
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:#dc2626;">تعذر جلب البيانات من السحابة.</td></tr>`;
-            }
-        }
+                data.forEach(apt => {
+                    const aptDateTime = new Date(`${apt.apt_date}T${apt.apt_time}`);
+                    const diffMin = (aptDateTime - now) / (1000 * 60);
 
-        function updateCounters(mails) {
-            document.getElementById('totalCount').innerText = mails.length;
-            document.getElementById('incomingCount').innerText = mails.filter(m => m.mail_type === 'وارد').length;
-            document.getElementById('outgoingCount').innerText = mails.filter(m => m.mail_type === 'صادر').length;
-            document.getElementById('pendingCount').innerText = mails.filter(m => m.status === 'قيد الإجراء').length;
-        }
+                    if (diffMin > 0 && diffMin <= 60) {
+                        document.getElementById('alertMessageText').innerText = `الموضوع: ${apt.apt_title}\nالضيف: ${apt.apt_with}\nالموعد: ${apt.apt_time} (${apt.apt_duration})`;
+                        const tgText = `⚠️ *تنبيه موعد قادم خلال أقل من ساعة*\n\n📋 ${apt.apt_title}\n👤 الضيف: ${apt.apt_with}\n🕒 الوقت: ${apt.apt_time}`;
+                        document.getElementById('alertTgBtn').href = `https://t.me/share/url?url=${encodeURIComponent(tgText)}`;
+                        document.getElementById('appointmentAlertModal').style.display = 'flex';
 
-        function applyFilters() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const typeFilter = document.getElementById('filterType').value;
-            const statusFilter = document.getElementById('filterStatus').value;
-
-            const filtered = globalMailsCache.filter(item => {
-                const matchesSearch = (item.mail_number && item.mail_number.toLowerCase().includes(query)) ||
-                                     (item.subject && item.subject.toLowerCase().includes(query)) ||
-                                     (item.created_by && item.created_by.toLowerCase().includes(query));
-                const matchesType = typeFilter === 'all' || item.mail_type === typeFilter;
-                const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-
-                return matchesSearch && matchesType && matchesStatus;
-            });
-
-            renderMailsTable(filtered);
-        }
-
-        function renderMailsTable(mails) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-
-            if(mails.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading-row">لا توجد معاملة مطابقة لخيارات البحث.</td></tr>`;
-                return;
-            }
-
-            mails.forEach(mail => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>
-                        <strong>${mail.mail_number}</strong><br>
-                        <small style="color: #64748b;">[${mail.mail_type}]</small>
-                    </td>
-                    <td>
-                        <strong>${mail.subject}</strong>
-                        ${mail.reply_to ? `<br><small style="color:#d97706;">إشارة إلى: ${mail.reply_to}</small>` : ''}
-                        ${mail.summary ? `<br><small style="color:#475569;">📌 ${mail.summary}</small>` : ''}
-                    </td>
-                    <td><small>${mail.sender_dept} ➔ ${mail.receiver_dept}</small></td>
-                    <td>
-                        <span style="font-size:11px; font-weight:bold;">${mail.status}</span><br>
-                        <small style="color:#dc2626;">🔒 ${mail.secrecy_level}</small>
-                    </td>
-                    <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">👤 ${mail.created_by || 'غير محدد'}</span></td>
-                    <td>
-                        ${mail.pdf_url ? `<a href="${mail.pdf_url}" target="_blank" class="btn-pdf">📄 عرض PDF</a>` : '<span style="color:#94a3b8; font-size:11px;">لا يوجد</span>'}
-                    </td>
-                    <td><button class="btn-delete" onclick="deleteMail(${mail.id})">حذف</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function deleteMail(id) {
-            if(currentUser.role !== 'admin') return;
-            if(!confirm('هل أنت تأكد من حذف هذه المعاملة نهائياً؟')) return;
-            try {
-                const { error } = await supabaseClient.from('military_mails').delete().eq('id', id);
-                if(error) throw error;
-                loadMails();
-            } catch (error) {
-                alert('حدث خطأ أثناء الحذف: ' + error.message);
-            }
-        }
-
-        function checkUpcomingAppointments() {
-            if(currentUser.role !== 'admin' || !globalAppointmentsCache || globalAppointmentsCache.length === 0) return;
-
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
-
-            globalAppointmentsCache.forEach(apt => {
-                if(apt.apt_date === todayStr && apt.apt_time) {
-                    const [hours, minutes] = apt.apt_time.split(':');
-                    const aptTimeObj = new Date();
-                    aptTimeObj.setHours(parseInt(hours), parseInt(minutes), 0);
-
-                    const diffMs = aptTimeObj - now;
-                    const diffMinutes = Math.floor(diffMs / 60000);
-
-                    if(diffMinutes >= -10 && diffMinutes <= 60 && !apt.alerted) {
-                        apt.alerted = true;
-                        let timeText = diffMinutes > 0 ? `يبدأ خلال ${diffMinutes} دقيقة` : `الموعد حان أو بدأ منذ قليل`;
-                        
-                        const tgText = encodeURIComponent(
-                            `⏰ *تنبيه موعد وشيك (خلال ساعة)*\n\n` +
-                            `📌 *الموضوع:* ${apt.apt_title}\n` +
-                            `👥 *مع:* ${apt.apt_with}\n` +
-                            `⏰ *الوقت:* ${apt.apt_time}\n` +
-                            `📍 *المكان:* ${apt.apt_location || 'مكتب المدير'}`
-                        );
-                        
-                        triggerAlertModal(`تنبيه: الموعد "${apt.apt_title}" مع (${apt.apt_with}) - ${timeText} في ${apt.apt_location || 'مكتب المدير'}.`, `https://t.me/share/url?url=${tgText}`);
+                        supabaseClient.from('manager_appointments').update({ notified: true }).eq('id', apt.id);
                     }
-                }
-            });
-        }
-
-        function triggerAlertModal(msg, tgUrl) {
-            document.getElementById('alertMessageText').innerText = msg;
-            const tgBtn = document.getElementById('alertTgBtn');
-            if(tgBtn) tgBtn.href = tgUrl || '#';
-            document.getElementById('appointmentAlertModal').style.display = 'flex';
+                });
+            } catch (e) {}
         }
 
         function closeAppointmentAlert() {
@@ -955,25 +961,15 @@
         }
 
         function exportToExcel() {
-            if(globalMailsCache.length === 0) {
-                alert('لا توجد بيانات لتصديرها.');
-                return;
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += "رقم الكتاب,النوع,الموضوع,من,إلى,السرية,الحالة,المُدخل\n";
-
+            let csv = '\uFEFFالرقم/النوع,الموضوع,المرسل,المستقبل,الحالة,السرية,المُدخل\n';
             globalMailsCache.forEach(m => {
-                csvContent += `"${m.mail_number}","${m.mail_type}","${m.subject}","${m.sender_dept}","${m.receiver_dept}","${m.secrecy_level}","${m.status}","${m.created_by}"\n`;
+                csv += `"${m.mail_number || ''} - ${m.mail_type || ''}","${m.subject || ''}","${m.sender_dept || ''}","${m.receiver_dept || ''}","${m.status || ''}","${m.secrecy_level || ''}","${m.created_by || ''}"\n`;
             });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `سجل_الأرشيف_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `أرشيف_المعاملات_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
-            document.body.removeChild(link);
         }
 
         function printReport() {
