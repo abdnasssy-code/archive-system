@@ -174,6 +174,7 @@
                                         <option value="قيد الإجراء">قيد الإجراء</option>
                                         <option value="منجز">منجز</option>
                                         <option value="مؤرشف">مؤرشف</option>
+                                        <option value="تم الرفض">تم الرفض</option>
                                     </select>
                                 </div>
                                 <div class="input-group full-width">
@@ -243,6 +244,7 @@
                             <option value="قيد الإجراء">قيد الإجراء</option>
                             <option value="منجز">منجز</option>
                             <option value="مؤرشف">مؤرشف</option>
+                            <option value="تم الرفض">تم الرفض</option>
                         </select>
                     </div>
                     
@@ -466,12 +468,22 @@
 
         /* ================= تنسيق تمييز البريد المتأخر (>3 أيام) ================= */
         tr.late-mail-row {
-            background-color: #fecdd3 !important;
+            background-color: #ffedd5 !important; /* لون برتقالي فاتح للتأخير */
         }
         tr.late-mail-row td {
-            background-color: #fecdd3 !important;
-            color: #881337 !important;
-            border-bottom: 1px solid #fda4af !important;
+            background-color: #ffedd5 !important;
+            color: #9a3412 !important;
+            border-bottom: 1px solid #fed7aa !important;
+        }
+
+        /* ================= تنسيق تمييز البريد المرفوض (باللون الأحمر) ================= */
+        tr.rejected-mail-row {
+            background-color: #fee2e2 !important; /* لون أحمر فاتح للرفض */
+        }
+        tr.rejected-mail-row td {
+            background-color: #fee2e2 !important;
+            color: #991b1b !important;
+            border-bottom: 1px solid #fca5a5 !important;
         }
 
         .official-emblem-img-container {
@@ -686,7 +698,7 @@
             document.getElementById('userInfoDisplay').innerText = `المستخدم: ${currentUser.username} ${roleBadge}`;
 
             applyPermissionsUI();
-            fetchLastMailNumber(); // جلب آخر رقم عند التسجيل
+            fetchLastMailNumber();
 
             if (currentUser.role === 'admin') {
                 loadMails();
@@ -792,7 +804,7 @@
             if(tabId === 'formTab') {
                 const btn = document.getElementById('btnFormTab');
                 if(btn) btn.classList.add('active');
-                fetchLastMailNumber(); // تحديث آخر رقم مسجل عند التحويل لتبويب التسجيل
+                fetchLastMailNumber();
             } else if(tabId === 'archiveTab') {
                 const btn = document.getElementById('btnArchiveTab');
                 if(btn) btn.classList.add('active');
@@ -836,6 +848,8 @@
                 const tr = document.createElement('tr');
                 
                 let isLate = false;
+                let isRejected = (mail.status === 'تم الرفض');
+
                 if (mail.status === 'قيد الإجراء' && mail.created_at) {
                     const createdDate = new Date(mail.created_at);
                     const now = new Date();
@@ -845,17 +859,24 @@
                     }
                 }
 
-                if (isLate) {
+                // تمييز السطر بالأحمر للمرفوض أو بالبرتقالي للمتأخر
+                if (isRejected) {
+                    tr.classList.add('rejected-mail-row');
+                } else if (isLate) {
                     tr.classList.add('late-mail-row');
                 }
+
+                // تنسيق لون شارة الحالة
+                let statusBadgeStyle = 'color: #0284c7;';
+                if (isRejected) statusBadgeStyle = 'color: #dc2626; font-weight: bold;';
 
                 tr.innerHTML = `
                     <td><strong>${mail.mail_number || '-'}</strong><br><small style="color:#64748b;">${mail.mail_type || '-'}</small></td>
                     <td><strong>${mail.subject || '-'}</strong>${mail.reply_to ? `<br><small style="color:#0284c7;">رداً على: ${mail.reply_to}</small>` : ''}</td>
                     <td>${mail.sender_dept || '-'} ← ${mail.receiver_dept || '-'}</td>
                     <td>
-                        <span class="badge">${mail.status || 'قيد الإجراء'}</span>
-                        ${isLate ? '<br><small style="color:#dc2626; font-weight:bold;">⚠️ متأخر (>3 أيام)</small>' : ''}
+                        <span class="badge" style="${statusBadgeStyle}">${mail.status || 'قيد الإجراء'}</span>
+                        ${isLate && !isRejected ? '<br><small style="color:#c2410c; font-weight:bold;">⚠️ متأخر (>3 أيام)</small>' : ''}
                         <br><small style="color:#64748b;">${mail.secrecy_level || 'عادي'}</small>
                     </td>
                     <td>${mail.created_by || 'غير محدد'}</td>
@@ -1035,7 +1056,7 @@
                 }
 
                 resetMailForm();
-                fetchLastMailNumber(); // تحديث رقم البريد في الملاحظة فوراً
+                fetchLastMailNumber();
                 if (currentUser && currentUser.role === 'admin') loadMails();
             } catch (err) {
                 alert('حدث خطأ أثناء حفظ الكتاب: ' + err.message);
