@@ -169,11 +169,11 @@
                                     </select>
                                 </div>
                                 <div class="input-group">
-                                    <label for="status">حالة المعاملة</label>
-                                    <select id="status" name="status">
-                                        <option value="قيد الإجراء">قيد الإجراء</option>
-                                        <option value="منجز">منجز</option>
-                                        <option value="مؤرشف">مؤرشف</option>
+                                    <label for="status">حالة المعاملة *</label>
+                                    <select id="status" name="status" required>
+                                        <option value="بانتظار الرد">بانتظار الرد</option>
+                                        <option value="تمت الموافقة">تمت الموافقة</option>
+                                        <option value="تم الموافقة الجزئية">تم الموافقة الجزئية</option>
                                         <option value="تم الرفض">تم الرفض</option>
                                     </select>
                                 </div>
@@ -221,7 +221,7 @@
                     </div>
                     <div class="stat-card">
                         <div>
-                            <span class="stat-label">قيد الإجراء (للمتابعة)</span>
+                            <span class="stat-label">بانتظار الرد</span>
                             <span class="stat-number" id="pendingCount">0</span>
                         </div>
                         <div class="stat-icon">⏳</div>
@@ -241,9 +241,9 @@
 
                         <select id="filterStatus" class="filter-select" onchange="applyFilters()">
                             <option value="all">جميع الحالات</option>
-                            <option value="قيد الإجراء">قيد الإجراء</option>
-                            <option value="منجز">منجز</option>
-                            <option value="مؤرشف">مؤرشف</option>
+                            <option value="بانتظار الرد">بانتظار الرد</option>
+                            <option value="تمت الموافقة">تمت الموافقة</option>
+                            <option value="تم الموافقة الجزئية">تم الموافقة الجزئية</option>
                             <option value="تم الرفض">تم الرفض</option>
                         </select>
                     </div>
@@ -466,25 +466,22 @@
         .btn-pdf { background: #0284c7; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
 
-        /* ================= تنسيق تمييز البريد المتأخر (>3 أيام) ================= */
-        tr.late-mail-row {
-            background-color: #ffedd5 !important; /* لون برتقالي فاتح للتأخير */
-        }
-        tr.late-mail-row td {
-            background-color: #ffedd5 !important;
-            color: #9a3412 !important;
-            border-bottom: 1px solid #fed7aa !important;
-        }
+        /* ================= ألوان أسطر الحالات بالأرشيف ================= */
+        /* 1. بانتظار الرد (أصفر) */
+        tr.status-waiting { background-color: #fef9c3 !important; }
+        tr.status-waiting td { background-color: #fef9c3 !important; color: #713f12 !important; border-bottom: 1px solid #fef08a !important; }
 
-        /* ================= تنسيق تمييز البريد المرفوض (باللون الأحمر) ================= */
-        tr.rejected-mail-row {
-            background-color: #fee2e2 !important; /* لون أحمر فاتح للرفض */
-        }
-        tr.rejected-mail-row td {
-            background-color: #fee2e2 !important;
-            color: #991b1b !important;
-            border-bottom: 1px solid #fca5a5 !important;
-        }
+        /* 2. تمت الموافقة (أخضر) */
+        tr.status-approved { background-color: #dcfce7 !important; }
+        tr.status-approved td { background-color: #dcfce7 !important; color: #166534 !important; border-bottom: 1px solid #bbf7d0 !important; }
+
+        /* 3. تم الموافقة الجزئية (أزرق) */
+        tr.status-partial { background-color: #e0f2fe !important; }
+        tr.status-partial td { background-color: #e0f2fe !important; color: #075985 !important; border-bottom: 1px solid #bae6fd !important; }
+
+        /* 4. تم الرفض (أحمر) */
+        tr.status-rejected { background-color: #fee2e2 !important; }
+        tr.status-rejected td { background-color: #fee2e2 !important; color: #991b1b !important; border-bottom: 1px solid #fca5a5 !important; }
 
         .official-emblem-img-container {
             width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
@@ -846,38 +843,27 @@
 
             mails.forEach(mail => {
                 const tr = document.createElement('tr');
-                
-                let isLate = false;
-                let isRejected = (mail.status === 'تم الرفض');
+                const st = mail.status || 'بانتظار الرد';
 
-                if (mail.status === 'قيد الإجراء' && mail.created_at) {
-                    const createdDate = new Date(mail.created_at);
-                    const now = new Date();
-                    const diffHours = (now - createdDate) / (1000 * 60 * 60);
-                    if (diffHours >= 72) {
-                        isLate = true;
-                    }
+                // تطبيق الكلاس الملون بناءً على حالة المعاملة
+                if (st === 'تمت الموافقة') {
+                    tr.classList.add('status-approved');
+                } else if (st === 'تم الموافقة الجزئية') {
+                    tr.classList.add('status-partial');
+                } else if (st === 'تم الرفض') {
+                    tr.classList.add('status-rejected');
+                } else {
+                    // بانتظار الرد أومعاملات سابقة قيد الإجراء
+                    tr.classList.add('status-waiting');
                 }
-
-                // تمييز السطر بالأحمر للمرفوض أو بالبرتقالي للمتأخر
-                if (isRejected) {
-                    tr.classList.add('rejected-mail-row');
-                } else if (isLate) {
-                    tr.classList.add('late-mail-row');
-                }
-
-                // تنسيق لون شارة الحالة
-                let statusBadgeStyle = 'color: #0284c7;';
-                if (isRejected) statusBadgeStyle = 'color: #dc2626; font-weight: bold;';
 
                 tr.innerHTML = `
-                    <td><strong>${mail.mail_number || '-'}</strong><br><small style="color:#64748b;">${mail.mail_type || '-'}</small></td>
+                    <td><strong>${mail.mail_number || '-'}</strong><br><small style="opacity: 0.8;">${mail.mail_type || '-'}</small></td>
                     <td><strong>${mail.subject || '-'}</strong>${mail.reply_to ? `<br><small style="color:#0284c7;">رداً على: ${mail.reply_to}</small>` : ''}</td>
                     <td>${mail.sender_dept || '-'} ← ${mail.receiver_dept || '-'}</td>
                     <td>
-                        <span class="badge" style="${statusBadgeStyle}">${mail.status || 'قيد الإجراء'}</span>
-                        ${isLate && !isRejected ? '<br><small style="color:#c2410c; font-weight:bold;">⚠️ متأخر (>3 أيام)</small>' : ''}
-                        <br><small style="color:#64748b;">${mail.secrecy_level || 'عادي'}</small>
+                        <span style="font-weight: bold;">${st}</span>
+                        <br><small style="opacity: 0.8;">${mail.secrecy_level || 'عادي'}</small>
                     </td>
                     <td>${mail.created_by || 'غير محدد'}</td>
                     <td>${mail.pdf_url ? `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">📄 معاينة PDF</button>` : '-'}</td>
@@ -894,7 +880,7 @@
             document.getElementById('totalCount').innerText = mails.length;
             document.getElementById('incomingCount').innerText = mails.filter(m => m.mail_type === 'وارد').length;
             document.getElementById('outgoingCount').innerText = mails.filter(m => m.mail_type === 'صادر').length;
-            document.getElementById('pendingCount').innerText = mails.filter(m => m.status === 'قيد الإجراء').length;
+            document.getElementById('pendingCount').innerText = mails.filter(m => m.status === 'بانتظار الرد' || m.status === 'قيد الإجراء').length;
         }
 
         function applyFilters() {
@@ -930,7 +916,7 @@
             document.getElementById('sender_dept').value = mail.sender_dept || '';
             document.getElementById('receiver_dept').value = mail.receiver_dept || '';
             document.getElementById('secrecy_level').value = mail.secrecy_level || 'عادي';
-            document.getElementById('status').value = mail.status || 'قيد الإجراء';
+            document.getElementById('status').value = mail.status || 'بانتظار الرد';
             document.getElementById('summary').value = mail.summary || '';
 
             document.getElementById('formHeaderTitle').innerText = '✏️ تعديل المعاملة الرسمية';
