@@ -965,7 +965,7 @@
             }
         }
 
-        // حفظ معاملة جديدة وتحديث الرقم الأخير فوراً
+        // حفظ معاملة جديدة أو تحديث معاملة موجودة (مع إصلاح فحص التكرار أثناء التعديل)
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -976,14 +976,14 @@
             const mailNumVal = document.getElementById('mail_number').value.trim();
 
             try {
-                // 1. فحص منع تكرار رقم الكتاب
+                // 1. فحص منع تكرار رقم الكتاب مع استثناء الكتاب الجاري تعديله حالياً
                 let checkQuery = supabaseClient
                     .from('military_mails')
                     .select('id')
                     .eq('mail_number', mailNumVal);
 
                 if (editingMailId) {
-                    checkQuery = checkQuery.neq('id', editingMailId);
+                    checkQuery = checkQuery.neq('id', editingMailId); // استثناء المعاملة الحالية لعدم إعطاء تنبيه تكرار عند التعديل
                 }
 
                 const { data: existingNum } = await checkQuery;
