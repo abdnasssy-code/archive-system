@@ -86,7 +86,7 @@
         </div>
     </div>
 
-    <!-- ================= نافذة معاينة PDF المنبثقة ================= -->
+    <!-- ================= نافذة معاينة PDF / الصورة المنبثقة ================= -->
     <div id="pdfPreviewModal" class="appointment-alert-overlay" style="display: none;">
         <div class="pdf-modal-card">
             <div class="pdf-modal-header">
@@ -94,7 +94,8 @@
                 <button type="button" onclick="closePdfModal()" class="btn-close-custom">✕ إغلاق</button>
             </div>
             <div class="pdf-modal-body">
-                <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
+                <img id="imgFrame" src="" style="width: 100%; height: 100%; object-fit: contain; display: none; background: #000;" alt="معاينة الصورة">
             </div>
         </div>
     </div>
@@ -202,10 +203,26 @@
                                     <label for="summary">خلاصة أو توجيهات المدير / نص الكتاب</label>
                                     <textarea id="summary" name="summary" rows="3" placeholder="اكتب ملخصاً أو توجيهات مدير الكلية بشأن الكتاب..."></textarea>
                                 </div>
+                                
+                                <!-- حقل المرفقات: إما رفع ملف PDF أو التقاط صورة بالكاميرا -->
                                 <div class="input-group full-width">
-                                    <label for="pdf_file">إرفاق نسخة PDF رسمية <small style="color:#64748b;" id="pdfNotice">(في حال التعديل، اتركه فارغاً للإبقاء على الملف الحالي)</small></label>
-                                    <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input">
+                                    <label>إرفاق نسخة PDF أو التقاط صورة مباشرة للكتاب <small style="color:#64748b;" id="pdfNotice">(في حال التعديل، اتركه فارغاً للإبقاء على الملف الحالي)</small></label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+                                        <!-- زر رفع ملف PDF -->
+                                        <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input" style="flex: 1; min-width: 220px;">
+                                        
+                                        <!-- زر التقاط صورة بالكاميرا الخلفية مباشرة -->
+                                        <label for="camera_file" class="btn-tool btn-camera" style="background: #0284c7; color: white; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; justify-content: center; flex: 1; min-width: 200px;">
+                                            📷 التقاط صورة بالكميرا
+                                        </label>
+                                        <input type="file" id="camera_file" accept="image/*" capture="environment" style="display: none;">
+                                    </div>
+                                    <!-- إشعار عند التقاط صورة جديدة لتأكيد اختيارها -->
+                                    <div id="cameraStatusMsg" style="margin-top: 6px; font-size: 12px; font-weight: bold; color: #16a34a; display: none;">
+                                        ✅ تم التقاط الصورة بنجاح وجاهزة للحفظ السحابي.
+                                    </div>
                                 </div>
+
                                 <div class="full-width" style="display: flex; gap: 10px;">
                                     <button type="submit" class="btn-submit-custom" id="submitBtn" style="flex:1;">حفظ وتوثيق المعاملة في الأرشيف المركزي</button>
                                     <button type="button" id="cancelEditBtn" onclick="resetMailForm()" class="btn-submit-custom" style="display:none; background:#64748b; width:130px;">إلغاء التعديل</button>
@@ -422,7 +439,7 @@
         .appointment-alert-card h3 { color: #dc2626; margin-top: 0; }
         .appointment-alert-card p { color: #334155; font-size: 15px; line-height: 1.6; }
 
-        /* نافذة معاينة PDF */
+        /* نافذة معاينة المرفقات (PDF أو صورة) */
         .pdf-modal-card {
             background: #ffffff;
             width: 90%;
@@ -455,7 +472,7 @@
             font-size: 13px;
         }
         .btn-close-custom:hover { background: #dc2626; }
-        .pdf-modal-body { flex: 1; background: #f1f5f9; }
+        .pdf-modal-body { flex: 1; background: #f1f5f9; display: flex; justify-content: center; align-items: center; }
 
         .controls-panel {
             background: #ffffff; padding: 15px; border-radius: 8px; margin-bottom: 20px;
@@ -487,20 +504,16 @@
         .btn-pdf { background: #0284c7; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
 
-        /* ================= ألوان أسطر الحالات بالأرشيف ================= -->
-        /* 1. بانتظار الرد (أصفر) */
+        /* ================= ألوان أسطر الحالات بالأرشيف ================= */
         tr.status-waiting { background-color: #fef9c3 !important; }
         tr.status-waiting td { background-color: #fef9c3 !important; color: #713f12 !important; border-bottom: 1px solid #fef08a !important; }
 
-        /* 2. تمت الموافقة (أخضر) */
         tr.status-approved { background-color: #dcfce7 !important; }
         tr.status-approved td { background-color: #dcfce7 !important; color: #166534 !important; border-bottom: 1px solid #bbf7d0 !important; }
 
-        /* 3. تم الموافقة الجزئية (أزرق) */
         tr.status-partial { background-color: #e0f2fe !important; }
         tr.status-partial td { background-color: #e0f2fe !important; color: #075985 !important; border-bottom: 1px solid #bae6fd !important; }
 
-        /* 4. تم الرفض (أحمر) */
         tr.status-rejected { background-color: #fee2e2 !important; }
         tr.status-rejected td { background-color: #fee2e2 !important; color: #991b1b !important; border-bottom: 1px solid #fca5a5 !important; }
 
@@ -636,7 +649,6 @@
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // القيم الافتراضية المحلية
         let ACCOUNTS = {
             adminPass: "admin123",
             visitorPass: "user123"
@@ -648,7 +660,28 @@
         let alertInterval = null;
         let editingMailId = null;
 
-        // جلب كلمات السر الديناميكية من Supabase
+        // متغير لتخزين الصورة الملتقطة بالكاميرا مؤقتاً قبل الحفظ
+        let capturedCameraFile = null;
+
+        // الاستماع لتغيير كاميرا الهاتف وتخزين الصورة
+        document.getElementById('camera_file').addEventListener('change', function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                capturedCameraFile = e.target.files[0];
+                // تفريغ حقل ملف الـ PDF لكي لا يحدث تضارب
+                document.getElementById('pdf_file').value = '';
+                document.getElementById('cameraStatusMsg').style.display = 'block';
+                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة: ${capturedCameraFile.name || 'صورة الكاميرا'}`;
+            }
+        });
+
+        // مراقبة حقل PDF لتفريغ الكاميرا في حال اختار المستخدم ملفاً جاهزاً بدلاً منها
+        document.getElementById('pdf_file').addEventListener('change', function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                capturedCameraFile = null;
+                document.getElementById('cameraStatusMsg').style.display = 'none';
+            }
+        });
+
         async function fetchSystemPasswords() {
             try {
                 const { data } = await supabaseClient
@@ -667,7 +700,6 @@
         }
         fetchSystemPasswords();
 
-        // دالة جلب وعرض آخر رقم بريد مسجل بالسحابة
         async function fetchLastMailNumber() {
             const valSpan = document.getElementById('lastMailNumValue');
             if (!valSpan) return;
@@ -691,7 +723,6 @@
             }
         }
 
-        // تسجيل الدخول
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('loginUser').value.trim();
@@ -727,7 +758,6 @@
             }
         });
 
-        // دوال نافذة التحقق الأمني لكلمات السر
         function openSecurityModal() {
             if(currentUser.role !== 'admin') return;
             document.getElementById('checkAdminPass').value = '';
@@ -739,7 +769,6 @@
             document.getElementById('securityCheckModal').style.display = 'none';
         }
 
-        // عند إدخال كلمة سر المدير للتحقق
         document.getElementById('securityCheckForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const enteredPass = document.getElementById('checkAdminPass').value.trim();
@@ -749,13 +778,12 @@
 
             if (enteredPass === ACCOUNTS.adminPass) {
                 closeSecurityModal();
-                openPassModal(); // فتح نافذة تغيير كلمات السر الفعلية بعد نجاح التحقق
+                openPassModal();
             } else {
                 errorEl.innerText = 'كلمة سر المدير غير صحيحة!';
             }
         });
 
-        // إدارة كلمات السر الفعلية (خاص بالمدير)
         function openPassModal() {
             document.getElementById('newAdminPass').value = ACCOUNTS.adminPass;
             document.getElementById('newVisitorPass').value = ACCOUNTS.visitorPass;
@@ -766,16 +794,29 @@
             document.getElementById('passChangeModal').style.display = 'none';
         }
 
-        // فتح وإغلاق نافذة معاينة PDF المنبثقة
+        // دالة فتح المعاينة للملفات (سواء كانت PDF أو صورة كاميرا)
         function openPdfModal(url) {
             if(!url) return;
-            document.getElementById('pdfFrame').src = url;
+            const iframe = document.getElementById('pdfFrame');
+            const img = document.getElementById('imgFrame');
+
+            // التحقق مما إذا كان الرابط لصورة أو ملف PDF بناءً على الامتداد
+            if(url.match(/\.(jpeg|jpg|png|webp|gif)/i) || url.includes('image')) {
+                iframe.style.display = 'none';
+                img.style.display = 'block';
+                img.src = url;
+            } else {
+                img.style.display = 'none';
+                iframe.style.display = 'block';
+                iframe.src = url;
+            }
             document.getElementById('pdfPreviewModal').style.display = 'flex';
         }
 
         function closePdfModal() {
             document.getElementById('pdfPreviewModal').style.display = 'none';
             document.getElementById('pdfFrame').src = '';
+            document.getElementById('imgFrame').src = '';
         }
 
         document.getElementById('changePassForm').addEventListener('submit', async function(e) {
@@ -816,7 +857,6 @@
 
         function applyPermissionsUI() {
             const isAdmin = currentUser && currentUser.role === 'admin';
-            
             const adminElements = document.querySelectorAll('.admin-only');
             adminElements.forEach(el => {
                 el.style.display = isAdmin ? '' : 'none';
@@ -859,7 +899,6 @@
             }
         }
 
-        // ================= إدارة البريد والمعاملات =================
         async function loadMails() {
             if (!currentUser || currentUser.role !== 'admin') return;
             const tbody = document.getElementById('tableBody');
@@ -893,7 +932,6 @@
                 const tr = document.createElement('tr');
                 const st = mail.status || 'بانتظار الرد';
 
-                // تطبيق الكلاس الملون بناءً على حالة المعاملة
                 if (st === 'تمت الموافقة') {
                     tr.classList.add('status-approved');
                 } else if (st === 'تم الموافقة الجزئية') {
@@ -902,6 +940,14 @@
                     tr.classList.add('status-rejected');
                 } else {
                     tr.classList.add('status-waiting');
+                }
+
+                // تحديد نص وزر المرفق بناءً على نوع الرابط (صورة كاميرا أو PDF)
+                let attachBtnHtml = '-';
+                if (mail.pdf_url) {
+                    const isImg = mail.pdf_url.match(/\.(jpeg|jpg|png|webp|gif)/i) || mail.pdf_url.includes('image');
+                    const btnLabel = isImg ? '🖼️ معاينة الصورة' : '📄 معاينة PDF';
+                    attachBtnHtml = `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">${btnLabel}</button>`;
                 }
 
                 tr.innerHTML = `
@@ -917,7 +963,7 @@
                         <br><small style="opacity: 0.8;">${mail.secrecy_level || 'عادي'}</small>
                     </td>
                     <td>${mail.created_by || 'غير محدد'}</td>
-                    <td>${mail.pdf_url ? `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">📄 معاينة PDF</button>` : '-'}</td>
+                    <td>${attachBtnHtml}</td>
                     <td>
                         <button type="button" onclick="editMail('${mail.id}')" class="btn-edit">تعديل</button>
                         <button type="button" onclick="deleteMail('${mail.id}')" class="btn-delete">حذف</button>
@@ -961,6 +1007,9 @@
             }
 
             editingMailId = mail.id;
+            capturedCameraFile = null;
+            document.getElementById('cameraStatusMsg').style.display = 'none';
+
             document.getElementById('mail_number').value = mail.mail_number || '';
             document.getElementById('mail_type').value = mail.mail_type || 'صادر';
             document.getElementById('reply_to').value = mail.reply_to || '';
@@ -987,7 +1036,9 @@
 
         function resetMailForm() {
             editingMailId = null;
+            capturedCameraFile = null;
             document.getElementById('mailForm').reset();
+            document.getElementById('cameraStatusMsg').style.display = 'none';
             document.getElementById('formHeaderTitle').innerText = 'تسجيل معاملة أو بريد رسمي جديد';
             document.getElementById('formHeaderDesc').innerText = 'توثيق الكتب الواردة والصادرة والداخلية لحفظها في الأرشيف السحابي مع تتبع هوية المُدخل';
             
@@ -1013,7 +1064,7 @@
             }
         }
 
-        // حفظ معاملة جديدة أو تحديث معاملة موجودة (مع استثناء المعاملة الحالية عند فحص التكرار)
+        // حفظ المعاملة مع دعم رفع ملف PDF أو صورة الكاميرا إلى التخزين السحابي
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -1041,15 +1092,23 @@
                     return;
                 }
 
+                // رفع المرفق (سواء ملف PDF أو صورة الكاميرا) إلى التخزين السحابي
                 let pdfUrl = null;
                 const fileInput = document.getElementById('pdf_file');
+                let fileToUpload = null;
+
                 if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    const fileExt = file.name.split('.').pop();
+                    fileToUpload = fileInput.files[0];
+                } else if (capturedCameraFile) {
+                    fileToUpload = capturedCameraFile;
+                }
+
+                if (fileToUpload) {
+                    const fileExt = fileToUpload.name ? fileToUpload.name.split('.').pop() : 'jpg';
                     const fileName = `${Date.now()}.${fileExt}`;
                     const { data: storageData, error: storageErr } = await supabaseClient.storage
                         .from('pdf_files')
-                        .upload(fileName, file);
+                        .upload(fileName, fileToUpload);
 
                     if (!storageErr && storageData) {
                         const { data: publicUrlData } = supabaseClient.storage
@@ -1101,7 +1160,6 @@
             }
         });
 
-        // ================= إدارة المواعيد =================
         async function loadAppointments() {
             if (!currentUser || currentUser.role !== 'admin') return;
             const tbody = document.getElementById('appointmentsTableBody');
