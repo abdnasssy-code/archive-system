@@ -41,16 +41,24 @@
         </div>
     </div>
 
-    <!-- ================= نافذة معاينة PDF المنبثقة ================= -->
-    <div id="pdfPreviewModal" class="appointment-alert-overlay" style="display: none;">
-        <div class="pdf-modal-card">
-            <div class="pdf-modal-header">
-                <h3>📄 معاينة الكتاب / المرفق الرسمي</h3>
-                <button type="button" onclick="closePdfModal()" class="btn-close-custom">✕ إغلاق</button>
+    <!-- ================= نافذة التحقق الأمني قبل فتح إعدادات كلمات السر ================= -->
+    <div id="securityCheckModal" class="appointment-alert-overlay" style="display: none;">
+        <div class="login-card" style="border-top: 4px solid #b45309; max-width: 380px;">
+            <div class="login-header">
+                <h2>🔐 التحقق الأمني للوصول للإعدادات</h2>
+                <p>يرجى إدخال كلمة سر المدير للتأكد من صلاحية التعديل</p>
             </div>
-            <div class="pdf-modal-body">
-                <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
-            </div>
+            <form id="securityCheckForm">
+                <div class="input-group" style="text-align: right; margin-bottom: 15px;">
+                    <label style="font-size: 13px; font-weight: bold;">كلمة سر المدير الحالية</label>
+                    <input type="password" id="checkAdminPass" required placeholder="أدخل كلمة سر المدير...">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-submit-custom" style="background: #b45309; flex: 1;">تحقق ومتابعة</button>
+                    <button type="button" onclick="closeSecurityModal()" class="btn-submit-custom" style="background: #64748b; width: 80px;">إلغاء</button>
+                </div>
+                <p id="securityError" class="login-error"></p>
+            </form>
         </div>
     </div>
 
@@ -75,6 +83,19 @@
                     <button type="button" onclick="closePassModal()" class="btn-submit-custom" style="background: #64748b; width: 80px;">إلغاء</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ================= نافذة معاينة PDF المنبثقة ================= -->
+    <div id="pdfPreviewModal" class="appointment-alert-overlay" style="display: none;">
+        <div class="pdf-modal-card">
+            <div class="pdf-modal-header">
+                <h3>📄 معاينة الكتاب / المرفق الرسمي</h3>
+                <button type="button" onclick="closePdfModal()" class="btn-close-custom">✕ إغلاق</button>
+            </div>
+            <div class="pdf-modal-body">
+                <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
         </div>
     </div>
 
@@ -110,7 +131,7 @@
                     <button class="tab-btn active" id="btnFormTab" onclick="switchTab('formTab')">تسجيل كتاب جديد</button>
                     <button class="tab-btn admin-only" id="btnArchiveTab" onclick="switchTab('archiveTab')" style="display: none;">أرشيف المعاملات</button>
                     <button class="tab-btn tab-btn-appointments admin-only" id="btnAppointmentsTab" onclick="switchTab('appointmentsTab')" style="display: none;">📅 مواعيد المدير</button>
-                    <button class="tab-btn admin-only" onclick="openPassModal()" style="display: none; background: #0369a1; color: white;">⚙️ كلمة السر</button>
+                    <button class="tab-btn admin-only" onclick="openSecurityModal()" style="display: none; background: #0369a1; color: white;">⚙️ كلمة السر</button>
                     <button class="tab-btn btn-logout" onclick="logoutSystem()">تسجيل خروج</button>
                 </div>
             </div>
@@ -466,7 +487,7 @@
         .btn-pdf { background: #0284c7; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
 
-        /* ================= ألوان أسطر الحالات بالأرشيف ================= */
+        /* ================= ألوان أسطر الحالات بالأرشيف ================= -->
         /* 1. بانتظار الرد (أصفر) */
         tr.status-waiting { background-color: #fef9c3 !important; }
         tr.status-waiting td { background-color: #fef9c3 !important; color: #713f12 !important; border-bottom: 1px solid #fef08a !important; }
@@ -706,9 +727,36 @@
             }
         });
 
-        // إدارة كلمات السر (خاص بالمدير)
-        function openPassModal() {
+        // دوال نافذة التحقق الأمني لكلمات السر
+        function openSecurityModal() {
             if(currentUser.role !== 'admin') return;
+            document.getElementById('checkAdminPass').value = '';
+            document.getElementById('securityError').innerText = '';
+            document.getElementById('securityCheckModal').style.display = 'flex';
+        }
+
+        function closeSecurityModal() {
+            document.getElementById('securityCheckModal').style.display = 'none';
+        }
+
+        // عند إدخال كلمة سر المدير للتحقق
+        document.getElementById('securityCheckForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const enteredPass = document.getElementById('checkAdminPass').value.trim();
+            const errorEl = document.getElementById('securityError');
+
+            await fetchSystemPasswords();
+
+            if (enteredPass === ACCOUNTS.adminPass) {
+                closeSecurityModal();
+                openPassModal(); // فتح نافذة تغيير كلمات السر الفعلية بعد نجاح التحقق
+            } else {
+                errorEl.innerText = 'كلمة سر المدير غير صحيحة!';
+            }
+        });
+
+        // إدارة كلمات السر الفعلية (خاص بالمدير)
+        function openPassModal() {
             document.getElementById('newAdminPass').value = ACCOUNTS.adminPass;
             document.getElementById('newVisitorPass').value = ACCOUNTS.visitorPass;
             document.getElementById('passChangeModal').style.display = 'flex';
@@ -965,7 +1013,7 @@
             }
         }
 
-        // حفظ معاملة جديدة أو تحديث معاملة موجودة (مع إصلاح فحص التكرار أثناء التعديل)
+        // حفظ معاملة جديدة أو تحديث معاملة موجودة (مع استثناء المعاملة الحالية عند فحص التكرار)
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -976,14 +1024,13 @@
             const mailNumVal = document.getElementById('mail_number').value.trim();
 
             try {
-                // 1. فحص منع تكرار رقم الكتاب مع استثناء الكتاب الجاري تعديله حالياً
                 let checkQuery = supabaseClient
                     .from('military_mails')
                     .select('id')
                     .eq('mail_number', mailNumVal);
 
                 if (editingMailId) {
-                    checkQuery = checkQuery.neq('id', editingMailId); // استثناء المعاملة الحالية لعدم إعطاء تنبيه تكرار عند التعديل
+                    checkQuery = checkQuery.neq('id', editingMailId);
                 }
 
                 const { data: existingNum } = await checkQuery;
@@ -994,7 +1041,6 @@
                     return;
                 }
 
-                // 2. رفع أو الإبقاء على ملف الـ PDF
                 let pdfUrl = null;
                 const fileInput = document.getElementById('pdf_file');
                 if (fileInput.files.length > 0) {
