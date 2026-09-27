@@ -205,9 +205,10 @@
                                 
                                 <!-- حقل المرفقات: PDF أو التقاط صورة بالكاميرا -->
                                 <div class="input-group full-width">
-                                    <label>إرفاق نسخة PDF أو التقاط صورة مباشرة للكتاب <small style="color:#64748b;" id="pdfNotice">(في حال التعديل، اتركه فارغاً للإبقاء على الملف الحالي)</small></label>
+                                    <label>إرفاق نسخة PDF (مستند رسمي) أو التقاط صورة بالكاميرا <small style="color:#64748b;" id="pdfNotice">(مسموح حصرياً بصيغ PDF أو صور)</small></label>
                                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
-                                        <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input">
+                                        <input type="file" id="pdf_file" name="pdf_file" accept=".pdf,application/pdf" class="file-input" style="flex: 1; min-width: 220px;">
+                                        
                                         <label for="camera_file" class="btn-tool btn-camera" style="background: #0284c7; color: white; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; justify-content: center; flex: 1; min-width: 200px;">
                                             📷 التقاط صورة بالكاميرا
                                         </label>
@@ -434,37 +435,19 @@
         .appointment-alert-card h3 { color: #dc2626; margin-top: 0; }
         .appointment-alert-card p { color: #334155; font-size: 15px; line-height: 1.6; }
 
-        /* نافذة معاينة المرفقات (PDF أو صورة) */
         .pdf-modal-card {
-            background: #ffffff;
-            width: 90%;
-            max-width: 950px;
-            height: 85vh;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            border-top: 4px solid #0284c7;
+            background: #ffffff; width: 90%; max-width: 950px; height: 85vh;
+            border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5); border-top: 4px solid #0284c7;
         }
         .pdf-modal-header {
-            background: #0f172a;
-            color: white;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background: #0f172a; color: white; padding: 12px 20px;
+            display: flex; justify-content: space-between; align-items: center;
         }
         .pdf-modal-header h3 { margin: 0; font-size: 16px; color: #38bdf8; }
         .btn-close-custom {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 13px;
+            background: #ef4444; color: white; border: none; padding: 6px 14px;
+            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;
         }
         .btn-close-custom:hover { background: #dc2626; }
         .pdf-modal-body { flex: 1; background: #f1f5f9; display: flex; justify-content: center; align-items: center; }
@@ -499,7 +482,6 @@
         .btn-pdf { background: #0284c7; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px; border: none; cursor: pointer; font-weight: bold; display: inline-block; }
         .btn-pdf:hover { background: #0369a1; }
 
-        /* ================= ألوان أسطر الحالات بالأرشيف ================= */
         tr.status-waiting { background-color: #fef9c3 !important; }
         tr.status-waiting td { background-color: #fef9c3 !important; color: #713f12 !important; border-bottom: 1px solid #fef08a !important; }
 
@@ -512,139 +494,48 @@
         tr.status-rejected { background-color: #fee2e2 !important; }
         tr.status-rejected td { background-color: #fee2e2 !important; color: #991b1b !important; border-bottom: 1px solid #fca5a5 !important; }
 
-        /* ================= تثبيت حجم شعار وزارة الدفاع بدقة ================= */
         .official-emblem-img-container {
-            width: 52px !important;
-            height: 52px !important;
-            min-width: 52px !important;
-            min-height: 52px !important;
-            max-width: 52px !important;
-            max-height: 52px !important;
-            border-radius: 50% !important;
-            overflow: hidden !important;
-            border: 2px solid #d4af37 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            background: #050d1a !important;
+            width: 52px !important; height: 52px !important; min-width: 52px !important; min-height: 52px !important;
+            max-width: 52px !important; max-height: 52px !important; border-radius: 50% !important; overflow: hidden !important;
+            border: 2px solid #d4af37 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #050d1a !important;
         }
-        .ministry-logo-img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-        }
+        .ministry-logo-img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
 
         .tab-btn-appointments {
-            background: rgba(212, 175, 55, 0.1) !important;
-            border-bottom: 3px solid #d4af37 !important;
-            color: #d4af37 !important;
+            background: rgba(212, 175, 55, 0.1) !important; border-bottom: 3px solid #d4af37 !important; color: #d4af37 !important;
         }
-        .tab-btn-appointments.active {
-            background: #d4af37 !important;
-            color: #0f172a !important;
-            font-weight: bold;
-        }
+        .tab-btn-appointments.active { background: #d4af37 !important; color: #0f172a !important; font-weight: bold; }
 
         .panel-header-appointments {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border-right: 5px solid #d4af37;
-            padding: 20px;
-            color: #ffffff;
-            border-radius: 8px 8px 0 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-right: 5px solid #d4af37; padding: 20px; color: #ffffff; border-radius: 8px 8px 0 0;
         }
-        .panel-header-appointments h2 {
-            color: #f59e0b;
-            margin: 0 0 5px 0;
-            font-size: 18px;
-        }
-        .panel-header-appointments p {
-            color: #94a3b8;
-            margin: 0;
-            font-size: 13px;
-        }
+        .panel-header-appointments h2 { color: #f59e0b; margin: 0 0 5px 0; font-size: 18px; }
+        .panel-header-appointments p { color: #94a3b8; margin: 0; font-size: 13px; }
 
         .btn-submit-appointments {
-            background: linear-gradient(135deg, #d97706, #b45309);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s;
+            background: linear-gradient(135deg, #d97706, #b45309); color: white; border: none; padding: 12px;
+            border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; width: 100%; transition: all 0.3s;
         }
         .btn-submit-appointments:hover {
-            background: linear-gradient(135deg, #b45309, #92400e);
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+            background: linear-gradient(135deg, #b45309, #92400e); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
         }
 
-        .appointments-panel-border {
-            border-top: 4px solid #d4af37 !important;
-        }
-        .appointments-thead-row th {
-            background-color: #0f172a !important;
-            color: #f59e0b !important;
-        }
+        .appointments-panel-border { border-top: 4px solid #d4af37 !important; }
+        .appointments-thead-row th { background-color: #0f172a !important; color: #f59e0b !important; }
         .btn-refresh-appointments {
-            background: #b45309;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
+            background: #b45309; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;
         }
-        .btn-refresh-appointments:hover {
-            background: #78350f;
-        }
+        .btn-refresh-appointments:hover { background: #78350f; }
 
-        /* ================= قواعد الطباعة الرسمية ================= */
         @media print {
-            .login-overlay, 
-            .appointment-alert-overlay, 
-            .app-header, 
-            .controls-panel, 
-            .action-buttons-group, 
-            #formTab, 
-            #appointmentsTab, 
-            .nav-tabs, 
-            button, 
-            .btn-delete, 
-            .btn-edit,
-            .btn-pdf {
+            .login-overlay, .appointment-alert-overlay, .app-header, .controls-panel, .action-buttons-group, 
+            #formTab, #appointmentsTab, .nav-tabs, button, .btn-delete, .btn-edit, .btn-pdf {
                 display: none !important;
             }
-
-            #appContainer, #archiveTab {
-                display: block !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            .print-header {
-                display: block !important;
-                text-align: center;
-                margin-bottom: 20px;
-                border-bottom: 2px solid #000;
-                padding-bottom: 10px;
-            }
-
-            .print-footer {
-                display: flex !important;
-                justify-content: space-between;
-                margin-top: 50px;
-                padding-top: 20px;
-            }
-
-            #thActionHeader, 
-            #mailsTable td:last-child {
-                display: none !important;
-            }
-
+            #appContainer, #archiveTab { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .print-header { display: block !important; text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            .print-footer { display: flex !important; justify-content: space-between; margin-top: 50px; padding-top: 20px; }
+            #thActionHeader, #mailsTable td:last-child { display: none !important; }
             body { background: white !important; color: #000 !important; font-family: 'Segoe UI', Tahoma, sans-serif; }
             .archive-panel { border: none !important; box-shadow: none !important; padding: 0 !important; }
             table { width: 100% !important; border-collapse: collapse !important; margin-top: 15px; }
@@ -1070,12 +961,38 @@
             }
         }
 
+        // الحفظ مع فحص برلمجي صارم يرفض ملفات الوورد أو غيرها من الامتدادات غير المصرح بها
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             const originalText = btn.innerText;
+
+            let pdfUrl = null;
+            const fileInput = document.getElementById('pdf_file');
+            let fileToUpload = null;
+
+            if (fileInput.files.length > 0) {
+                fileToUpload = fileInput.files[0];
+            } else if (capturedCameraFile) {
+                fileToUpload = capturedCameraFile;
+            }
+
+            // [حماية صارمة جداً]: الفحص البرمجي قبل الرفع لمنع ملفات الوورد أو أي صيغ غير مسموحة
+            if (fileToUpload) {
+                const originalName = fileToUpload.name || '';
+                const fileExt = originalName.split('.').pop().toLowerCase();
+                
+                // قائمة الصيغ المسموحة حصرياً
+                const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+
+                if (!allowedExtensions.includes(fileExt)) {
+                    alert(`❌ خطأ أمني مرفوض!\nالملف المختار بصيغة (${fileExt.toUpperCase()}) غير مسموح به نهائياً.\nالنظام يقبل فقط ملفات PDF أو الصور الرسمية.`);
+                    return; // إيقاف العملية فورا وعدم الرفع للسحابة
+                }
+            }
+
             btn.disabled = true;
-            btn.innerText = 'جاري الحفظ ورفع المرفق...';
+            btn.innerText = 'جاري الحفظ ورفع المرفق الآمن...';
 
             const mailNumVal = document.getElementById('mail_number').value.trim();
 
@@ -1095,16 +1012,6 @@
                     btn.disabled = false;
                     btn.innerText = originalText;
                     return;
-                }
-
-                let pdfUrl = null;
-                const fileInput = document.getElementById('pdf_file');
-                let fileToUpload = null;
-
-                if (fileInput.files.length > 0) {
-                    fileToUpload = fileInput.files[0];
-                } else if (capturedCameraFile) {
-                    fileToUpload = capturedCameraFile;
                 }
 
                 if (fileToUpload) {
@@ -1171,6 +1078,7 @@
                 alert('حدث خطأ غير متوقع أثناء الحفظ: ' + err.message);
             } finally {
                 btn.disabled = false;
+                btn.innerText = originalText;
             }
         });
 
