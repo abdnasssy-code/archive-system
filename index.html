@@ -86,7 +86,7 @@
         </div>
     </div>
 
-    <!-- ================= نافذة معاينة PDF / الصورة المنبثقة ================= -->
+    <!-- ================= نافذة معاينة المرفقات المنبثقة (PDF أو صورة) ================= -->
     <div id="pdfPreviewModal" class="appointment-alert-overlay" style="display: none;">
         <div class="pdf-modal-card">
             <div class="pdf-modal-header">
@@ -95,7 +95,7 @@
             </div>
             <div class="pdf-modal-body">
                 <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
-                <img id="imgFrame" src="" style="width: 100%; height: 100%; object-fit: contain; display: none; background: #000;" alt="معاينة الصورة">
+                <img id="imgFrame" src="" style="width: 100%; height: 100%; object-fit: contain; display: none; background: #000;" alt="معاينة الصورة الملتقطة">
             </div>
         </div>
     </div>
@@ -204,20 +204,17 @@
                                     <textarea id="summary" name="summary" rows="3" placeholder="اكتب ملخصاً أو توجيهات مدير الكلية بشأن الكتاب..."></textarea>
                                 </div>
                                 
-                                <!-- حقل المرفقات: إما رفع ملف PDF أو التقاط صورة بالكاميرا -->
+                                <!-- حقل المرفقات: PDF أو التقاط صورة بالكاميرا -->
                                 <div class="input-group full-width">
                                     <label>إرفاق نسخة PDF أو التقاط صورة مباشرة للكتاب <small style="color:#64748b;" id="pdfNotice">(في حال التعديل، اتركه فارغاً للإبقاء على الملف الحالي)</small></label>
                                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
-                                        <!-- زر رفع ملف PDF -->
                                         <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="file-input" style="flex: 1; min-width: 220px;">
                                         
-                                        <!-- زر التقاط صورة بالكاميرا الخلفية مباشرة -->
                                         <label for="camera_file" class="btn-tool btn-camera" style="background: #0284c7; color: white; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; justify-content: center; flex: 1; min-width: 200px;">
-                                            📷 التقاط صورة بالكميرا
+                                            📷 التقاط صورة بالكاميرا
                                         </label>
                                         <input type="file" id="camera_file" accept="image/*" capture="environment" style="display: none;">
                                     </div>
-                                    <!-- إشعار عند التقاط صورة جديدة لتأكيد اختيارها -->
                                     <div id="cameraStatusMsg" style="margin-top: 6px; font-size: 12px; font-weight: bold; color: #16a34a; display: none;">
                                         ✅ تم التقاط الصورة بنجاح وجاهزة للحفظ السحابي.
                                     </div>
@@ -660,21 +657,17 @@
         let alertInterval = null;
         let editingMailId = null;
 
-        // متغير لتخزين الصورة الملتقطة بالكاميرا مؤقتاً قبل الحفظ
         let capturedCameraFile = null;
 
-        // الاستماع لتغيير كاميرا الهاتف وتخزين الصورة
         document.getElementById('camera_file').addEventListener('change', function(e) {
             if (e.target.files && e.target.files.length > 0) {
                 capturedCameraFile = e.target.files[0];
-                // تفريغ حقل ملف الـ PDF لكي لا يحدث تضارب
                 document.getElementById('pdf_file').value = '';
                 document.getElementById('cameraStatusMsg').style.display = 'block';
-                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة: ${capturedCameraFile.name || 'صورة الكاميرا'}`;
+                document.getElementById('cameraStatusMsg').innerText = `✅ تم التقاط الصورة بنجاح وجاهزة للحفظ.`;
             }
         });
 
-        // مراقبة حقل PDF لتفريغ الكاميرا في حال اختار المستخدم ملفاً جاهزاً بدلاً منها
         document.getElementById('pdf_file').addEventListener('change', function(e) {
             if (e.target.files && e.target.files.length > 0) {
                 capturedCameraFile = null;
@@ -794,14 +787,15 @@
             document.getElementById('passChangeModal').style.display = 'none';
         }
 
-        // دالة فتح المعاينة للملفات (سواء كانت PDF أو صورة كاميرا)
+        // دالة عرض المعاينة للملفات أو صور الكاميرا
         function openPdfModal(url) {
             if(!url) return;
             const iframe = document.getElementById('pdfFrame');
             const img = document.getElementById('imgFrame');
 
-            // التحقق مما إذا كان الرابط لصورة أو ملف PDF بناءً على الامتداد
-            if(url.match(/\.(jpeg|jpg|png|webp|gif)/i) || url.includes('image')) {
+            // فحص امتداد الرابط أو كونه صورة
+            if (url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || url.includes('image') || url.includes('supabase.co/storage')) {
+                // افتراض أن الملفات المرفوعة عبر الكاميرا هي صور
                 iframe.style.display = 'none';
                 img.style.display = 'block';
                 img.src = url;
@@ -942,10 +936,10 @@
                     tr.classList.add('status-waiting');
                 }
 
-                // تحديد نص وزر المرفق بناءً على نوع الرابط (صورة كاميرا أو PDF)
+                // إصلاح زر المرفق ليتعرف تلقائياً على الصور (الكاميرا) أو الـ PDF
                 let attachBtnHtml = '-';
                 if (mail.pdf_url) {
-                    const isImg = mail.pdf_url.match(/\.(jpeg|jpg|png|webp|gif)/i) || mail.pdf_url.includes('image');
+                    const isImg = mail.pdf_url.match(/\.(jpeg|jpg|png|webp|gif|bmp)/i) || mail.pdf_url.includes('image');
                     const btnLabel = isImg ? '🖼️ معاينة الصورة' : '📄 معاينة PDF';
                     attachBtnHtml = `<button type="button" onclick="openPdfModal('${mail.pdf_url}')" class="btn-pdf">${btnLabel}</button>`;
                 }
@@ -1064,7 +1058,7 @@
             }
         }
 
-        // حفظ المعاملة مع دعم رفع ملف PDF أو صورة الكاميرا إلى التخزين السحابي
+        // الحفظ ورفع المرفق (PDF أو صورة الكاميرا)
         document.getElementById('mailForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -1092,7 +1086,6 @@
                     return;
                 }
 
-                // رفع المرفق (سواء ملف PDF أو صورة الكاميرا) إلى التخزين السحابي
                 let pdfUrl = null;
                 const fileInput = document.getElementById('pdf_file');
                 let fileToUpload = null;
